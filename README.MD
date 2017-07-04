@@ -5,6 +5,12 @@ A library to create HTTP response content for APIs based on
 
 This library depends on [serde](https://serde.rs/).
 
+The ```HttpApiProblem``` struct implements `Serialize'.
+
+## Documentation
+
+The [documentation](https://docs.rs/http-api-problem) can be found on [docs.rs](https://docs.rs)
+
 ## Usage
 
 Add this to your `Cargo.toml`:

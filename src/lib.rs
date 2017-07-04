@@ -5,6 +5,8 @@
 //!
 //! This library depends on [serde](https://serde.rs/).
 //!
+//! The ```HttpApiProblem``` struct implements `Serialize'.
+//!
 //! ## Usage
 //! 
 //! Add this to your `Cargo.toml`:
