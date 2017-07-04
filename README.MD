@@ -17,7 +17,7 @@ The [documentation](https://docs.rs/http-api-problem) can be found on [docs.rs](
 
 Add this to your `Cargo.toml`:
 ```toml
-http-api-problem = { version="0.1.0" }
+http-api-problem = "0.1"
 ```
 
 Add this to the crate root:
