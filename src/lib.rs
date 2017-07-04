@@ -2,6 +2,46 @@
 //!
 //! A library to create HTTP response content for APIs based on
 //! [RFC7807](https://tools.ietf.org/html/rfc7807)
+//!
+//! This library depends on [serde](https://serde.rs/).
+//!
+//! ## Usage
+//! 
+//! Add this to your `Cargo.toml`:
+//!
+//! ```toml
+//! http-api-problem = { version="0.1.0" }
+//! ```
+//! 
+//! Add this crate root:
+//! 
+//! ```rust
+//! extern crate http_api_problem;
+//! ```
+//!
+//! ## Example
+//!
+//! ```rust
+//! use http_api_problem::*;
+//!
+//! let p = 
+//!     HttpApiProblem::with_type_and_title_from_status(428)
+//!     .set_detail("detailed explanation")
+//!     .set_instance("/on/1234/do/something");
+//!
+//! assert_eq!("https://httpstatuses.com/428", p.type_url);
+//! assert_eq!(Some(428), p.status);
+//! assert_eq!(Some("Precondition Required".to_string()), p.title);
+//! assert_eq!(Some("detailed explanation".to_string()), p.detail);
+//! assert_eq!(Some("/on/1234/do/something".to_string()), p.instance);
+//! ```
+//!
+//! ## License
+//! 
+//! `http-api-problem` is primarily distributed under the terms of both the MIT license and the
+//! Apache License (Version 2.0).
+//! 
+//! Copyright (c) 2017 Christian Douven.
 
 extern crate serde;
 #[macro_use]
@@ -63,7 +103,7 @@ impl HttpApiProblem {
     ///
     /// #Example
     ///
-    /// ```
+    /// ```rust
     /// use http_api_problem::*;
     ///
     /// let p = HttpApiProblem::new("http://example.com/my/error");
@@ -88,7 +128,7 @@ impl HttpApiProblem {
     ///
     /// #Example
     ///
-    /// ```
+    /// ```rust
     /// use http_api_problem::*;
     ///
     /// let p = HttpApiProblem::with_type_from_status(503);
@@ -113,7 +153,7 @@ impl HttpApiProblem {
     ///
     /// #Example
     ///
-    /// ```
+    /// ```rust
     /// use http_api_problem::*;
     ///
     /// let p = HttpApiProblem::with_type_and_title_from_status(428);
@@ -138,7 +178,7 @@ impl HttpApiProblem {
     ///
     /// #Example
     ///
-    /// ```
+    /// ```rust
     /// use http_api_problem::*;
     ///
     /// let p = HttpApiProblem::with_title_from_status("http://example.com/my/error", 404);
@@ -159,11 +199,35 @@ impl HttpApiProblem {
         }
     }
 
+    /// Sets the `type_url`
+    ///
+    /// #Example
+    ///
+    /// ```rust
+    /// use http_api_problem::*;
+    ///
+    /// let p = 
+    ///     HttpApiProblem::new("http://example.com/my/error")
+    ///     .set_type_url("http://example.com/my/real_error");
+    ///
+    /// assert_eq!("http://example.com/my/real_error", p.type_url);
+    /// assert_eq!(None, p.status);
+    /// assert_eq!(None, p.title);
+    /// assert_eq!(None, p.detail);
+    /// assert_eq!(None, p.instance);
+    /// ```
+    pub fn set_type_url<T: Into<String>>(self, type_url: T) -> HttpApiProblem {
+        let mut s = self;
+        s.type_url = type_url.into();
+        s
+    }
+    
+
     /// Sets the `status`
     ///
     /// #Example
     ///
-    /// ```
+    /// ```rust
     /// use http_api_problem::*;
     ///
     /// let p = HttpApiProblem::new("http://example.com/my/error").set_status(404);
@@ -184,7 +248,7 @@ impl HttpApiProblem {
     ///
     /// #Example
     ///
-    /// ```
+    /// ```rust
     /// use http_api_problem::*;
     ///
     /// let p = HttpApiProblem::new("http://example.com/my/error").set_title("an error");
@@ -205,7 +269,7 @@ impl HttpApiProblem {
     ///
     /// #Example
     ///
-    /// ```
+    /// ```rust
     /// use http_api_problem::*;
     ///
     /// let p =
@@ -228,7 +292,7 @@ impl HttpApiProblem {
     ///
     /// #Example
     ///
-    /// ```
+    /// ```rust
     /// use http_api_problem::*;
     ///
     /// let p =
