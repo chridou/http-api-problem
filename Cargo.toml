@@ -1,0 +1,6 @@
+[package]
+name = "http-api-problem"
+version = "0.1.0"
+authors = ["cdouven <christian.douven@zalando.de>"]
+
+[dependencies]
