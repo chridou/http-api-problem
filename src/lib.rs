@@ -1,11 +1,11 @@
 //! # HTTP-API-PROBLEM
 //!
 //! A library to create HTTP response content for APIs based on
-//! [RFC7807](https://tools.ietf.org/html/rfc7807)
+//! [RFC7807](https://tools.ietf.org/html/rfc7807).
 //!
 //! This library depends on [serde](https://serde.rs/).
 //!
-//! The ```HttpApiProblem``` struct implements `Serialize'.
+//! The ```HttpApiProblem``` struct implements ```Serialize``` and ```Deserialize```.
 //!
 //! ## Usage
 //! 

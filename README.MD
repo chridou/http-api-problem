@@ -1,11 +1,13 @@
 # HTTP-API-PROBLEM
 
+[![Build Status](https://secure.travis-ci.org/chridou/http-api-problem.png)](http://travis-ci.org/chridou/http-api-problem) 
+
 A library to create HTTP response content for APIs based on
-[RFC7807](https://tools.ietf.org/html/rfc7807)
+[RFC7807](https://tools.ietf.org/html/rfc7807).
 
 This library depends on [serde](https://serde.rs/).
 
-The ```HttpApiProblem``` struct implements `Serialize'.
+The ```HttpApiProblem``` struct implements `Serialize` and `Deserialize`.
 
 ## Documentation
 
@@ -18,7 +20,7 @@ Add this to your `Cargo.toml`:
 http-api-problem = { version="0.1.0" }
 ```
 
-Add this crate root:
+Add this to the crate root:
 
 ```rust
 extern crate http_api_problem;
