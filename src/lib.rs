@@ -345,17 +345,12 @@ impl From<HttpStatusCode> for HttpApiProblem {
 /// recommended to only use values between [100, 599], since only these are
 /// defined as valid status codes with a status class by HTTP.
 ///
-/// If you encounter a status code that you do not know how to deal with, you
-/// should treat it as the `x00` status code—e.g. for code 123, treat it as
-/// 100 (Continue). This can be achieved with
-/// `self.class().default_code()`:
-///
 /// IANA maintain the [Hypertext Transfer Protocol (HTTP) Status Code
 /// Registry](http://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml) which is
 /// the source for this enum (with one exception, 418 I'm a teapot, which is
 /// inexplicably not in the register).
 ///
-/// Shamelessly copied from [iron](http://ironframework.io/)
+/// Shamelessly copied from [iron](http://ironframework.io/).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HttpStatusCode {
     Continue,
@@ -422,6 +417,16 @@ pub enum HttpStatusCode {
 }
 
 impl HttpStatusCode {
+    /// A descriptice title for the status code which does not contain
+    /// the numeric code itself.
+    ///
+    /// #Example
+    ///
+    /// ```rust
+    /// use http_api_problem::*;
+    ///
+    /// assert_eq!("Internal Server Error", HttpStatusCode::InternalServerError.title());
+    /// ```
     pub fn title(&self) -> &'static str {
         use HttpStatusCode::*;
         match *self {
@@ -497,6 +502,15 @@ impl HttpStatusCode {
         }
     }
 
+    /// The numeric status code
+    ///
+    /// #Example
+    ///
+    /// ```rust
+    /// use http_api_problem::*;
+    ///
+    /// assert_eq!(500, HttpStatusCode::InternalServerError.to_u16());
+    /// ```
     pub fn to_u16(&self) -> u16 {
         use HttpStatusCode::*;
         match *self {
