@@ -49,7 +49,7 @@
 //! ```
 //!
 //! There is also `From<u16>` implemented for `HttpStatusCode`:
-//! 
+//!
 //! ```rust
 //! use http_api_problem::*;
 //!
@@ -64,10 +64,10 @@
 //! assert_eq!(Some("detailed explanation".to_string()), p.detail);
 //! assert_eq!(Some("/on/1234/do/something".to_string()), p.instance);
 //! ```
-//! 
+//!
 //! ## Features
 //!
-//! To directly construct from `iron::status::StatusCode` from the [iron-framework](http://ironframework.io/) 
+//! To directly construct from `iron::status::StatusCode` from the [iron-framework](http://ironframework.io/)
 //! use `feature` `iron` which adds `From<iron::status::StatusCode> for HttpStatusCode`.
 //!
 //! ## License
