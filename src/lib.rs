@@ -33,11 +33,28 @@
 //!
 //! ## Features
 //!
-//! To directly construct from `[iron] StatusCode` the `feature` `iron` implements `From`
-//! for `HttpStatusCode` of this library.
+//! To directly construct from `[iron](http://ironframework.io/)::StatusCode` the `feature` `iron` 
+//! implements `From<iron::status::StatusCode> for HttpStatusCode`.
 //!
-//! ## Example
+//! ## Examples
 //!
+//! //! ```rust
+//! use http_api_problem::*;
+//!
+//! let p =
+//!     HttpApiProblem::with_title_and_type_from_status(HttpStatusCode::NotFound)
+//!     .set_detail("detailed explanation")
+//!     .set_instance("/on/1234/do/something");
+//!
+//! assert_eq!(Some("https://httpstatuses.com/404".to_string()), p.type_url);
+//! assert_eq!(Some(404), p.status);
+//! assert_eq!("Not Found".to_string(), p.title);
+//! assert_eq!(Some("detailed explanation".to_string()), p.detail);
+//! assert_eq!(Some("/on/1234/do/something".to_string()), p.instance);
+//! ```
+//!
+//! There is also `From<u16>` implemented for `HttpStatusCode`:
+//! 
 //! ```rust
 //! use http_api_problem::*;
 //!
@@ -88,7 +105,7 @@ pub static PROBLEM_XML_MEDIA_TYPE: &'static str = "application/problem+xml";
 ///    "instance": "/account/12345/msgs/abc",
 /// }
 /// ```
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HttpApiProblem {
     /// A URI reference [RFC3986](https://tools.ietf.org/html/rfc3986) that identifies the
     /// problem type.  This specification encourages that, when
@@ -336,9 +353,10 @@ impl From<HttpStatusCode> for HttpApiProblem {
 /// IANA maintain the [Hypertext Transfer Protocol (HTTP) Status Code
 /// Registry](http://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml) which is
 /// the source for this enum (with one exception, 418 I'm a teapot, which is
-/// inexplicably not in the register).#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// inexplicably not in the register).
 ///
 /// Shamelessly copied from [iron](http://ironframework.io/)
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HttpStatusCode {
     Continue,
     SwitchingProtocols,
