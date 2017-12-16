@@ -69,7 +69,7 @@
 //!
 //! To directly construct from `iron::status::StatusCode` from the [iron-framework](http://ironframework.io/)
 //! use `feature` `iron` which adds `From<iron::status::StatusCode> for HttpStatusCode`.
-//! 
+//!
 //! Ther `serde` feature provides `Serialize` and `Deserialize` for `HttpStatusCode`.
 //!
 //! ## License
@@ -79,7 +79,7 @@
 //!
 //! Copyright (c) 2017 Christian Douven.
 
-#[cfg(feature = "iron")]
+#[cfg(feature = "serde")]
 #[macro_use]
 extern crate serde;
 
