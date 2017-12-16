@@ -417,7 +417,7 @@ pub enum HttpStatusCode {
 }
 
 impl HttpStatusCode {
-    /// A descriptice title for the status code which does not contain
+    /// A descriptive title for the status code which does not contain
     /// the numeric code itself.
     ///
     /// #Example
