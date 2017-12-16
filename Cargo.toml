@@ -1,6 +1,6 @@
 [package]
 name = "http-api-problem"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["Christian Douven <chridou@users.noreply.github.com>"]
 description = "A library to create HTTP error response content for APIs based on RFC 7807"
 repository = "https://github.com/chridou/http-api-problem"

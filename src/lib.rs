@@ -31,14 +31,9 @@
 //! extern crate http_api_problem;
 //! ```
 //!
-//! ## Features
-//!
-//! To directly construct from `[iron](http://ironframework.io/)::StatusCode` the `feature` `iron` 
-//! implements `From<iron::status::StatusCode> for HttpStatusCode`.
-//!
 //! ## Examples
 //!
-//! //! ```rust
+//! ```rust
 //! use http_api_problem::*;
 //!
 //! let p =
@@ -69,6 +64,11 @@
 //! assert_eq!(Some("detailed explanation".to_string()), p.detail);
 //! assert_eq!(Some("/on/1234/do/something".to_string()), p.instance);
 //! ```
+//! 
+//! ## Features
+//!
+//! To directly construct from `iron::status::StatusCode` from the [iron-framework](http://ironframework.io/) 
+//! use `feature` `iron` which adds `From<iron::status::StatusCode> for HttpStatusCode`.
 //!
 //! ## License
 //!
