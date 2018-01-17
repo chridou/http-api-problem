@@ -243,7 +243,6 @@ impl HttpApiProblem {
         s
     }
 
-
     /// Sets the `status`
     ///
     /// #Example
@@ -658,8 +657,15 @@ impl fmt::Display for HttpStatusCode {
 }
 
 #[cfg(feature = "iron")]
-impl From<::iron::status::StatusCode> for HttpStatusCode {
-    fn from(iron_status: ::iron::status::StatusCode) -> HttpStatusCode {
+impl From<::iron::status::Status> for HttpStatusCode {
+    fn from(iron_status: ::iron::status::Status) -> HttpStatusCode {
         iron_status.to_u16().into()
+    }
+}
+
+#[cfg(feature = "iron")]
+impl From<HttpStatusCode> for ::iron::status::Status {
+    fn from(status: HttpStatusCode) -> ::iron::status::Status {
+        ::iron::status::Status::from_u16(status.to_u16())
     }
 }
