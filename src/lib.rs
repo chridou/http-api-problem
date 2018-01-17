@@ -15,8 +15,6 @@
 //!
 //! ## Usage
 //!
-//! Add this to your `Cargo.toml`:
-//!
 //! Get the latest version for your `Cargo.toml` from
 //! [crates.io](https://crates.io/crates/http-api-problem).
 //!
