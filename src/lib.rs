@@ -29,8 +29,7 @@
 //! ```rust
 //! use http_api_problem::*;
 //!
-//! let p =
-//!     HttpApiProblem::with_title_and_type_from_status(HttpStatusCode::NotFound)
+//! let p = HttpApiProblem::with_title_and_type_from_status(HttpStatusCode::NotFound)
 //!     .set_detail("detailed explanation")
 //!     .set_instance("/on/1234/do/something");
 //!
@@ -46,8 +45,7 @@
 //! ```rust
 //! use http_api_problem::*;
 //!
-//! let p =
-//!     HttpApiProblem::with_title_and_type_from_status(428)
+//! let p = HttpApiProblem::with_title_and_type_from_status(428)
 //!     .set_detail("detailed explanation")
 //!     .set_instance("/on/1234/do/something");
 //!
@@ -61,24 +59,27 @@
 //! ## Features
 //!
 //! ### serde
-//! 
+//!
 //! The `serde` feature provides `Serialize` and `Deserialize` for `HttpApiProblem`.
-//! 
+//!
 //! ### serde + serde_json
-//! 
-//! `HttpApiProblem` provides a method to `` wich is a `Vec[u8]`
-//! 
+//!
+//! `HttpApiProblem` provides a method to ` wich is a `Vec[u8]`
+//!
 //! ### iron
-//! 
+//!
 //! There is a conversion between `iron`s StatusCode and `HttpStatusCode` back and forth.
-//! 
-//! ### iron + serde + serde_json 
-//! 
-//! The `HttpApiProblem` provides a method `to_iron_response` which constructs an iron `Response`.
+//!
+//! ### iron + serde + serde_json
+//!
+//! The `HttpApiProblem` provides a method `to_iron_response` which constructs an iron `iron::response::Response`.
 //! If the `status` field of the `HttpApiProblem` is `None` `500 - Internal Server Error` is the default.
-//! 
+//!
 //! `From<HttpApiProblem` for `iron::response::Response` will also be there. It simply calls
 //! `to_iron_response`.
+//!
+//! Additionally there will be a function `into_iron_response` which converts anything into
+//! an `iron::response::Response` that can be converted into a `HttpApiProblem`.
 //!
 //! ## License
 //!
@@ -101,7 +102,7 @@ extern crate iron;
 use std::fmt;
 
 #[cfg(feature = "serde")]
-use serde::{Serialize, Deserialize, Serializer, Deserializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 /// The recommended media type when serialized to JSON
 pub static PROBLEM_JSON_MEDIA_TYPE: &'static str = "application/problem+json";
@@ -242,11 +243,12 @@ impl HttpApiProblem {
     /// ```rust
     /// use http_api_problem::*;
     ///
-    /// let p =
-    ///     HttpApiProblem::new("Error")
-    ///     .set_type_url("http://example.com/my/real_error");
+    /// let p = HttpApiProblem::new("Error").set_type_url("http://example.com/my/real_error");
     ///
-    /// assert_eq!(Some("http://example.com/my/real_error".to_string()), p.type_url);
+    /// assert_eq!(
+    ///     Some("http://example.com/my/real_error".to_string()),
+    ///     p.type_url
+    /// );
     /// assert_eq!(None, p.status);
     /// assert_eq!("Error", p.title);
     /// assert_eq!(None, p.detail);
@@ -308,9 +310,7 @@ impl HttpApiProblem {
     /// ```rust
     /// use http_api_problem::*;
     ///
-    /// let p =
-    ///     HttpApiProblem::new("Error")
-    ///     .set_detail("a detailed description");
+    /// let p = HttpApiProblem::new("Error").set_detail("a detailed description");
     ///
     /// assert_eq!(None, p.type_url);
     /// assert_eq!(None, p.status);
@@ -331,9 +331,7 @@ impl HttpApiProblem {
     /// ```rust
     /// use http_api_problem::*;
     ///
-    /// let p =
-    ///     HttpApiProblem::new("Error")
-    ///     .set_instance("/account/1234/withdraw");
+    /// let p = HttpApiProblem::new("Error").set_instance("/account/1234/withdraw");
     ///
     /// assert_eq!(None, p.type_url);
     /// assert_eq!(None, p.status);
@@ -353,27 +351,36 @@ impl HttpApiProblem {
     }
 
     /// Creates an `Iron` response.
-    /// 
+    ///
     /// If status is `None` `500 - Internal Server Error` is the
     /// default.
     #[cfg(all(feature = "serde", feature = "serde_json", feature = "iron"))]
     pub fn to_iron_response(self) -> ::iron::response::Response {
         use iron::*;
-        use iron::headers::{Headers, ContentType};
+        use iron::headers::{ContentType, Headers};
         use iron::status::Status;
-        use iron::mime::{Mime, TopLevel, SubLevel, Attr, Value};
+        use iron::mime::{Attr, Mime, SubLevel, TopLevel, Value};
 
-        let status: Status = self.status.unwrap_or(HttpStatusCode::InternalServerError).into();
+        let status: Status = self.status
+            .unwrap_or(HttpStatusCode::InternalServerError)
+            .into();
 
         let mut response = Response::with((status, self.json_bytes()));
         let mime: Mime = PROBLEM_JSON_MEDIA_TYPE.parse().unwrap();
-        response.headers.set(
-            ContentType(mime));
-
+        response.headers.set(ContentType(mime));
 
         response
-
     }
+}
+
+/// Creates an `iron::response::Response` from something that can become an `HttpApiProblem`.
+///
+/// If status is `None` `500 - Internal Server Error` is the
+/// default.
+#[cfg(all(feature = "serde", feature = "serde_json", feature = "iron"))]
+pub fn into_iron_response<T: Into<HttpApiProblem>>(what: T) -> ::iron::response::Response {
+    let prop: HttpApiProblem = what.into();
+    prop.to_iron_response()
 }
 
 impl From<HttpStatusCode> for HttpApiProblem {
@@ -477,7 +484,10 @@ impl HttpStatusCode {
     /// ```rust
     /// use http_api_problem::*;
     ///
-    /// assert_eq!("Internal Server Error", HttpStatusCode::InternalServerError.title());
+    /// assert_eq!(
+    ///     "Internal Server Error",
+    ///     HttpStatusCode::InternalServerError.title()
+    /// );
     /// ```
     pub fn title(&self) -> &'static str {
         use HttpStatusCode::*;
@@ -709,7 +719,8 @@ impl fmt::Display for HttpStatusCode {
 #[cfg(feature = "serde")]
 impl Serialize for HttpStatusCode {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where S: Serializer
+    where
+        S: Serializer,
     {
         serializer.serialize_u16(self.to_u16())
     }
@@ -718,7 +729,8 @@ impl Serialize for HttpStatusCode {
 #[cfg(feature = "serde")]
 impl<'de> Deserialize<'de> for HttpStatusCode {
     fn deserialize<D>(deserializer: D) -> Result<HttpStatusCode, D::Error>
-        where D: Deserializer<'de>
+    where
+        D: Deserializer<'de>,
     {
         u16::deserialize(deserializer).map(Into::into)
     }
