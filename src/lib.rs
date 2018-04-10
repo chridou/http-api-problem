@@ -18,7 +18,7 @@
 //! Get the latest version for your `Cargo.toml` from
 //! [crates.io](https://crates.io/crates/http-api-problem).
 //!
-//! Add this crate root:
+//! Add this to your crate root:
 //!
 //! ```rust
 //! extern crate http_api_problem;
@@ -64,7 +64,11 @@
 //!
 //! ### serde + serde_json
 //!
+<<<<<<< HEAD
 //! `HttpApiProblem` provides a method to ` wich is a `Vec[u8]`
+=======
+//! `HttpApiProblem` provides a method to `` wich is a `Vec[u8]`
+>>>>>>> 953872d19e2d3dad02ba1706b2429cc87001f5ca
 //!
 //! ### iron
 //!
@@ -72,7 +76,11 @@
 //!
 //! ### iron + serde + serde_json
 //!
+<<<<<<< HEAD
 //! The `HttpApiProblem` provides a method `to_iron_response` which constructs an iron `iron::response::Response`.
+=======
+//! The `HttpApiProblem` provides a method `to_iron_response` which constructs an iron `Response`.
+>>>>>>> 953872d19e2d3dad02ba1706b2429cc87001f5ca
 //! If the `status` field of the `HttpApiProblem` is `None` `500 - Internal Server Error` is the default.
 //!
 //! `From<HttpApiProblem` for `iron::response::Response` will also be there. It simply calls
@@ -389,7 +397,7 @@ impl From<HttpStatusCode> for HttpApiProblem {
     }
 }
 
-#[cfg(all(feature = "serde", feature = "serde_json", feature = "iron", test))]
+#[cfg(all(feature = "serde", feature = "serde_json", feature = "iron"))]
 impl From<HttpApiProblem> for ::iron::response::Response {
     fn from(p: HttpApiProblem) -> ::iron::response::Response {
         p.to_iron_response()
