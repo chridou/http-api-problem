@@ -64,11 +64,7 @@
 //!
 //! ### serde + serde_json
 //!
-<<<<<<< HEAD
-//! `HttpApiProblem` provides a method to ` wich is a `Vec[u8]`
-=======
 //! `HttpApiProblem` provides a method to `` wich is a `Vec[u8]`
->>>>>>> 953872d19e2d3dad02ba1706b2429cc87001f5ca
 //!
 //! ### iron
 //!
@@ -76,11 +72,7 @@
 //!
 //! ### iron + serde + serde_json
 //!
-<<<<<<< HEAD
-//! The `HttpApiProblem` provides a method `to_iron_response` which constructs an iron `iron::response::Response`.
-=======
 //! The `HttpApiProblem` provides a method `to_iron_response` which constructs an iron `Response`.
->>>>>>> 953872d19e2d3dad02ba1706b2429cc87001f5ca
 //! If the `status` field of the `HttpApiProblem` is `None` `500 - Internal Server Error` is the default.
 //!
 //! `From<HttpApiProblem` for `iron::response::Response` will also be there. It simply calls
@@ -95,7 +87,6 @@
 //! Apache License (Version 2.0).
 //!
 //! Copyright (c) 2017 Christian Douven.
-
 #[cfg(feature = "serde")]
 #[macro_use]
 extern crate serde;
@@ -106,6 +97,9 @@ extern crate serde_json;
 
 #[cfg(feature = "iron")]
 extern crate iron;
+
+#[cfg(feature = "hyper")]
+extern crate hyper;
 
 use std::fmt;
 
@@ -253,10 +247,7 @@ impl HttpApiProblem {
     ///
     /// let p = HttpApiProblem::new("Error").set_type_url("http://example.com/my/real_error");
     ///
-    /// assert_eq!(
-    ///     Some("http://example.com/my/real_error".to_string()),
-    ///     p.type_url
-    /// );
+    /// assert_eq!(Some("http://example.com/my/real_error".to_string()), p.type_url);
     /// assert_eq!(None, p.status);
     /// assert_eq!("Error", p.title);
     /// assert_eq!(None, p.detail);
@@ -358,26 +349,51 @@ impl HttpApiProblem {
         serde_json::to_vec(self).unwrap()
     }
 
-    /// Creates an `Iron` response.
+    /// Creates an `iron` response.
     ///
     /// If status is `None` `500 - Internal Server Error` is the
     /// default.
     #[cfg(all(feature = "serde", feature = "serde_json", feature = "iron"))]
     pub fn to_iron_response(self) -> ::iron::response::Response {
-        use iron::*;
         use iron::headers::{ContentType, Headers};
-        use iron::status::Status;
         use iron::mime::{Attr, Mime, SubLevel, TopLevel, Value};
+        use iron::status::Status;
+        use iron::*;
 
-        let status: Status = self.status
-            .unwrap_or(HttpStatusCode::InternalServerError)
-            .into();
+        let status: Status = self.status.unwrap_or(HttpStatusCode::InternalServerError).into();
 
         let mut response = Response::with((status, self.json_bytes()));
         let mime: Mime = PROBLEM_JSON_MEDIA_TYPE.parse().unwrap();
         response.headers.set(ContentType(mime));
 
         response
+    }
+
+    /// Creates a `hyper` response.
+    ///
+    /// If status is `None` `500 - Internal Server Error` is the
+    /// default.
+    #[cfg(all(feature = "serde", feature = "serde_json", feature = "hyper"))]
+    pub fn to_hyper_json_response(self) -> hyper::Response {
+        use hyper::headers::{ContentType, Headers};
+        use hyper::mime::{Attr, Mime, SubLevel, TopLevel, Value};
+        use hyper::status::Status;
+        use hyper::*;
+
+        let status: Status = self.status.unwrap_or(HttpStatusCode::InternalServerError).into();
+
+        let mut response = Response::with((status, self.json_bytes()));
+        let mime: Mime = PROBLEM_JSON_MEDIA_TYPE.parse().unwrap();
+        response.headers.set(ContentType(mime));
+
+        response
+    }
+
+}
+
+impl From<HttpStatusCode> for HttpApiProblem {
+    fn from(status: HttpStatusCode) -> HttpApiProblem {
+        HttpApiProblem::with_title_from_status(status)
     }
 }
 
@@ -387,20 +403,14 @@ impl HttpApiProblem {
 /// default.
 #[cfg(all(feature = "serde", feature = "serde_json", feature = "iron"))]
 pub fn into_iron_response<T: Into<HttpApiProblem>>(what: T) -> ::iron::response::Response {
-    let prop: HttpApiProblem = what.into();
-    prop.to_iron_response()
-}
-
-impl From<HttpStatusCode> for HttpApiProblem {
-    fn from(status: HttpStatusCode) -> HttpApiProblem {
-        HttpApiProblem::with_title_from_status(status)
-    }
+    let problem: HttpApiProblem = what.into();
+    problem.to_iron_response()
 }
 
 #[cfg(all(feature = "serde", feature = "serde_json", feature = "iron"))]
 impl From<HttpApiProblem> for ::iron::response::Response {
-    fn from(p: HttpApiProblem) -> ::iron::response::Response {
-        p.to_iron_response()
+    fn from(problem: HttpApiProblem) -> ::iron::response::Response {
+        problem.to_iron_response()
     }
 }
 
@@ -492,10 +502,7 @@ impl HttpStatusCode {
     /// ```rust
     /// use http_api_problem::*;
     ///
-    /// assert_eq!(
-    ///     "Internal Server Error",
-    ///     HttpStatusCode::InternalServerError.title()
-    /// );
+    /// assert_eq!("Internal Server Error", HttpStatusCode::InternalServerError.title());
     /// ```
     pub fn title(&self) -> &'static str {
         use HttpStatusCode::*;
@@ -741,6 +748,21 @@ impl<'de> Deserialize<'de> for HttpStatusCode {
         D: Deserializer<'de>,
     {
         u16::deserialize(deserializer).map(Into::into)
+    }
+}
+
+#[cfg(feature = "hyper")]
+impl From<::hyper::StatusCode> for HttpStatusCode {
+    fn from(hyper_status: hyper::StatusCode) -> HttpStatusCode {
+        hyper_status.as_u16().into()
+    }
+}
+
+#[cfg(feature = "hyper")]
+impl From<HttpStatusCode> for ::hyper::StatusCode {
+    fn from(status: HttpStatusCode) -> ::hyper::StatusCode {
+        ::hyper::StatusCode::try_from(status.to_u16())
+            .unwrap_or_else(|_| ::hyper::StatusCode::Unregistered(status.to_u16()))
     }
 }
 
