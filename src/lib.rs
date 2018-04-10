@@ -369,6 +369,7 @@ impl HttpApiProblem {
         response
     }
 
+/*
     /// Creates a `hyper` response.
     ///
     /// If status is `None` `500 - Internal Server Error` is the
@@ -387,8 +388,7 @@ impl HttpApiProblem {
         response.headers.set(ContentType(mime));
 
         response
-    }
-
+    }*/
 }
 
 impl From<HttpStatusCode> for HttpApiProblem {
