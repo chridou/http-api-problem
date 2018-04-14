@@ -89,9 +89,26 @@
 //! Additionally there will be a function `into_iron_response` which converts anything into
 //! a `hyper::Response` that can be converted into a `HttpApiProblem`.
 //!
+//! ### with_rocket(nightly only)
 //!
-//!  ## Recent changes
+//! There is a conversion between `rocket`s Status and `HttpStatusCode` back and forth.
 //!
+//! `HttpApiProblem` implements `rocket::response::Responder`, allowing it to be returned
+//! from rocket handlers directly (e.g. as `Result<T, HttpApiProblem>`).
+//! It also provides a method `to_rocket_response` which explicitly constructs a rocket `Response`.
+//! If the `status` field of the `HttpApiProblem` is `None` `500 - Internal Server Error` is the default.
+//!
+//! `From<HttpApiProblem` for `rocket::Response` will also be there. It simply calls
+//! `to_rocket_response`.
+//!
+//! Additionally there will be a function `into_rocket_response` which converts anything into
+//! a `rocket::Response` that can be converted into a `HttpApiProblem`.
+//!
+//!
+//! ## Recent changes
+//!
+//!  * 0.5.1
+//!      * Support for `Rocket` (contributed by panicbit)
 //!  * 0.5.0
 //!      * Breaking changes, features renamed to `with_iron` and `with_hyper`
 //!      * `to_iron_response` now takes a ref insted of `Self`.
@@ -392,8 +409,8 @@ impl HttpApiProblem {
     /// default.
     #[cfg(feature = "with_hyper")]
     pub fn to_hyper_response(&self) -> hyper::Response {
-        use hyper::header::{ContentLength, ContentType};
         use hyper::StatusCode;
+        use hyper::header::{ContentLength, ContentType};
         use hyper::*;
         use mime::*;
 
@@ -411,16 +428,15 @@ impl HttpApiProblem {
         response
     }
 
-
     /// Creates a `rocket` response.
     ///
     /// If status is `None` `500 - Internal Server Error` is the
     /// default.
-     #[cfg(feature = "with_rocket")]
+    #[cfg(feature = "with_rocket")]
     pub fn to_rocket_response(&self) -> rocket::Response<'static> {
         use rocket::Response;
-        use rocket::http::Status;
         use rocket::http::ContentType;
+        use rocket::http::Status;
         use std::io::Cursor;
 
         let status: Status = self.status.unwrap_or(HttpStatusCode::InternalServerError).into();
@@ -878,7 +894,6 @@ impl From<HttpStatusCode> for ::rocket::http::Status {
         use rocket::http::Status;
 
         let code = status.to_u16();
-        Status::from_code(code)
-            .unwrap_or(Status::new(code, ""))
+        Status::from_code(code).unwrap_or(Status::new(code, ""))
     }
 }

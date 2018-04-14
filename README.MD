@@ -86,7 +86,7 @@
  Additionally there will be a function `into_hyper_response` which converts anything into
  a `hyper::Response` that can be converted into a `HttpApiProblem`.
 
- ### with_rocket
+ ### with_rocket(nightly only)
 
  There is a conversion between `rocket`s Status and `HttpStatusCode` back and forth.
 
@@ -104,6 +104,8 @@
 
   ## Recent changes
 
+  * 0.5.1
+      * Support for `Rocket` (contributed by panicbit)
   * 0.5.0
       * Breaking changes, features renamed to `with_iron` and `with_hyper`
       * `to_iron_response` now takes a ref insted of `Self`.
