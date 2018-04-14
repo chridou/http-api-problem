@@ -356,10 +356,12 @@ impl HttpApiProblem {
         s
     }
 
+    /// Serialize to a JSON `Vec<u8>`
     pub fn json_bytes(&self) -> Vec<u8> {
         serde_json::to_vec(self).unwrap()
     }
 
+    /// Serialize to a JSON `String`
     pub fn json_string(&self) -> String {
         serde_json::to_string(self).unwrap()
     }
@@ -458,6 +460,10 @@ impl From<HttpApiProblem> for ::iron::response::Response {
     }
 }
 
+/// Creates an `hyper::Response` from something that can become an `HttpApiProblem`.
+///
+/// If status is `None` `500 - Internal Server Error` is the
+/// default.
 #[cfg(feature = "with_hyper")]
 pub fn into_hyper_response<T: Into<HttpApiProblem>>(what: T) -> hyper::Response {
     let problem: HttpApiProblem = what.into();

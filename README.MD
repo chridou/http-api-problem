@@ -3,12 +3,9 @@
  [![crates.io](https://img.shields.io/crates/v/http-api-problem.svg)](https://crates.io/crates/http-api-problem)
  [![docs.rs](https://docs.rs/http-api-problem/badge.svg)](https://docs.rs/http-api-problem)
  [![downloads](https://img.shields.io/crates/d/http-api-problem.svg)](https://crates.io/crates/http-api-problem)
- [![Build Status](https://travis-ci.org/chridou/http-api-problem.svg?branch=master)](https://travis-ci.
- org/chridou/http-api-problem)
- [![license-mit](http://img.shields.io/badge/license-MIT-blue.svg)](https://github.
- com/chridou/http-api-problem/blob/master/LICENSE-MIT)
- [![license-apache](http://img.shields.io/badge/license-APACHE-blue.svg)]
- (https://github.com/chridou/http-api-problem/blob/master/LICENSE-APACHE)
+ [![Build Status](https://travis-ci.org/chridou/http-api-problem.svg?branch=master)](https://travis-ci.org/chridou/http-api-problem)
+ [![license-mit](http://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/chridou/http-api-problem/blob/master/LICENSE-MIT)
+ [![license-apache](http://img.shields.io/badge/license-APACHE-blue.svg)](https://github.com/chridou/http-api-problem/blob/master/LICENSE-APACHE)
 
  A library to create HTTP response content for APIs based on
  [RFC7807](https://tools.ietf.org/html/rfc7807).
@@ -80,13 +77,13 @@
 
  There is a conversion between `hypers`s StatusCode and `HttpStatusCode` back and forth.
 
- The `HttpApiProblem` provides a method `to_hyper_response` which constructs an iron `Response`.
+ The `HttpApiProblem` provides a method `to_hyper_response` which constructs an hyper `Response`.
  If the `status` field of the `HttpApiProblem` is `None` `500 - Internal Server Error` is the default.
 
  `From<HttpApiProblem` for `hyper::Response` will also be there. It simply calls
  `to_hyper_response`.
 
- Additionally there will be a function `into_iron_response` which converts anything into
+ Additionally there will be a function `into_hyper_response` which converts anything into
  a `hyper::Response` that can be converted into a `HttpApiProblem`.
 
  ### with_rocket
