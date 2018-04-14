@@ -77,13 +77,13 @@
 
  There is a conversion between `hypers`s StatusCode and `HttpStatusCode` back and forth.
 
- The `HttpApiProblem` provides a method `to_hyper_response` which constructs an iron `Response`.
+ The `HttpApiProblem` provides a method `to_hyper_response` which constructs an hyper `Response`.
  If the `status` field of the `HttpApiProblem` is `None` `500 - Internal Server Error` is the default.
 
  `From<HttpApiProblem` for `hyper::Response` will also be there. It simply calls
  `to_hyper_response`.
 
- Additionally there will be a function `into_iron_response` which converts anything into
+ Additionally there will be a function `into_hyper_response` which converts anything into
  a `hyper::Response` that can be converted into a `HttpApiProblem`.
 
 
