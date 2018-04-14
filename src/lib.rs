@@ -115,6 +115,9 @@ extern crate hyper;
 #[cfg(feature = "with_hyper")]
 extern crate mime;
 
+#[cfg(feature = "with_rocket")]
+extern crate rocket;
+
 use std::fmt;
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -405,6 +408,31 @@ impl HttpApiProblem {
 
         response
     }
+
+
+    /// Creates a `rocket` response.
+    ///
+    /// If status is `None` `500 - Internal Server Error` is the
+    /// default.
+     #[cfg(feature = "with_rocket")]
+    pub fn to_rocket_response(&self) -> rocket::Response<'static> {
+        use rocket::Response;
+        use rocket::http::Status;
+        use rocket::http::ContentType;
+        use std::io::Cursor;
+
+        let status: Status = self.status.unwrap_or(HttpStatusCode::InternalServerError).into();
+
+        let content_type: ContentType = PROBLEM_JSON_MEDIA_TYPE.parse().unwrap();
+        let json = self.json_bytes();
+        let response = Response::build()
+            .status(status)
+            .sized_body(Cursor::new(json))
+            .header(content_type)
+            .finalize();
+
+        response
+    }
 }
 
 impl From<HttpStatusCode> for HttpApiProblem {
@@ -440,6 +468,30 @@ pub fn into_hyper_response<T: Into<HttpApiProblem>>(what: T) -> hyper::Response 
 impl From<HttpApiProblem> for hyper::Response {
     fn from(problem: HttpApiProblem) -> hyper::Response {
         problem.to_hyper_response()
+    }
+}
+
+/// Creates an `rocket::Response` from something that can become an `HttpApiProblem`.
+///
+/// If status is `None` `500 - Internal Server Error` is the
+/// default.
+#[cfg(feature = "with_rocket")]
+pub fn into_rocket_response<T: Into<HttpApiProblem>>(what: T) -> ::rocket::Response<'static> {
+    let problem: HttpApiProblem = what.into();
+    problem.to_rocket_response()
+}
+
+#[cfg(feature = "with_rocket")]
+impl From<HttpApiProblem> for ::rocket::Response<'static> {
+    fn from(problem: HttpApiProblem) -> ::rocket::Response<'static> {
+        problem.to_rocket_response()
+    }
+}
+
+#[cfg(feature = "with_rocket")]
+impl<'r> ::rocket::response::Responder<'r> for HttpApiProblem {
+    fn respond_to(self, _request: &::rocket::Request) -> Result<::rocket::Response<'r>, ::rocket::http::Status> {
+        Ok(self.into())
     }
 }
 
@@ -804,5 +856,23 @@ impl From<::iron::status::Status> for HttpStatusCode {
 impl From<HttpStatusCode> for ::iron::status::Status {
     fn from(status: HttpStatusCode) -> ::iron::status::Status {
         ::iron::status::Status::from_u16(status.to_u16())
+    }
+}
+
+#[cfg(feature = "with_rocket")]
+impl From<::rocket::http::Status> for HttpStatusCode {
+    fn from(rocket_status: ::rocket::http::Status) -> HttpStatusCode {
+        rocket_status.code.into()
+    }
+}
+
+#[cfg(feature = "with_rocket")]
+impl From<HttpStatusCode> for ::rocket::http::Status {
+    fn from(status: HttpStatusCode) -> ::rocket::http::Status {
+        use rocket::http::Status;
+
+        let code = status.to_u16();
+        Status::from_code(code)
+            .unwrap_or(Status::new(code, ""))
     }
 }
