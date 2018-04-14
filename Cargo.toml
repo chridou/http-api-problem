@@ -17,7 +17,9 @@ serde_json = { version = "1.0" }
 iron = { version = "0.6", optional = true }
 hyper = { version = "0.11", optional = true }
 mime = { version = "0.3", optional = true }
+rocket = { version = "0.3", optional = true }
 
 [features]
 with_iron = ["iron"]
 with_hyper = ["hyper", "mime"]
+with_rocket = ["rocket"]
