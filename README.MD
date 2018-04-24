@@ -102,13 +102,15 @@
  a `rocket::Response` that can be converted into a `HttpApiProblem`.
 
 
-  ## Recent changes
+## Recent changes
 
-  * 0.5.1
-      * Support for `Rocket` (contributed by panicbit)
-  * 0.5.0
-      * Breaking changes, features renamed to `with_iron` and `with_hyper`
-      * `to_iron_response` now takes a ref insted of `Self`.
+* 0.5.2
+    * Added methods to status code to query its category
+* 0.5.1
+    * Support for `Rocket` (contributed by panicbit)
+* 0.5.0
+    * Breaking changes, features renamed to `with_iron` and `with_hyper`
+    * `to_iron_response` now takes a ref insted of `Self`.
 
  ## License
 

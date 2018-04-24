@@ -107,6 +107,8 @@
 //!
 //! ## Recent changes
 //!
+//!  * 0.5.2
+//!      * Added methods to status code to query its category
 //!  * 0.5.1
 //!      * Support for `Rocket` (contributed by panicbit)
 //!  * 0.5.0
@@ -597,6 +599,36 @@ pub enum HttpStatusCode {
 }
 
 impl HttpStatusCode {
+    ///  `HttpStatusCode` is within 100-199.
+    #[inline]
+    pub fn is_informational(&self) -> bool {
+        self.to_u16() >= 100 && self.to_u16() < 200
+    }
+
+    /// `HttpStatusCode` is within 200-299.
+    #[inline]
+    pub fn is_success(&self) -> bool {
+        self.to_u16() >= 200 && self.to_u16() < 300
+    }
+
+    /// `HttpStatusCode`  is within 300-399.
+    #[inline]
+    pub fn is_redirection(&self) -> bool {
+        self.to_u16() >= 300 && self.to_u16() < 400
+    }
+
+    /// `HttpStatusCode`  is within 400-499.
+    #[inline]
+    pub fn is_client_error(&self) -> bool {
+        self.to_u16() >= 400 && self.to_u16() < 500
+    }
+
+    /// `HttpStatusCode`  is within 500-599.
+    #[inline]
+    pub fn is_server_error(&self) -> bool {
+        self.to_u16() >= 500 && self.to_u16() < 600
+    }
+
     /// A descriptive title for the status code which does not contain
     /// the numeric code itself.
     ///
