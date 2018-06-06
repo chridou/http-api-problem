@@ -104,6 +104,8 @@
 
 ## Recent changes
 
+* 0.5.3
+    * Fixed JSON mappings(serde attributes were not respected)
 * 0.5.2
     * Added methods to status code to query its category
 * 0.5.1

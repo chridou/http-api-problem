@@ -26,7 +26,8 @@
 //!
 //!  ## serde
 //!
-//! `HttpApiProblem` implements `Serialize` and `Deserialize` for `HttpApiProblem`.
+//! `HttpApiProblem` implements `Serialize` and `Deserialize` for
+//! `HttpApiProblem`.
 //!
 //! ## Examples
 //!
@@ -65,60 +66,71 @@
 //!
 //! ### with_iron
 //!
-//! There is a conversion between `iron`s StatusCode and `HttpStatusCode` back and forth.
+//! There is a conversion between `iron`s StatusCode and `HttpStatusCode` back
+//! and forth.
 //!
-//! The `HttpApiProblem` provides a method `to_iron_response` which constructs an iron `Response`.
-//! If the `status` field of the `HttpApiProblem` is `None` `500 - Internal Server Error` is the default.
+//! The `HttpApiProblem` provides a method `to_iron_response` which constructs
+//! an iron `Response`. If the `status` field of the `HttpApiProblem` is `None`
+//! `500 - Internal Server Error` is the default.
 //!
-//! `From<HttpApiProblem` for `iron::response::Response` will also be there. It simply calls
-//! `to_iron_response`.
+//! `From<HttpApiProblem` for `iron::response::Response` will also be there. It
+//! simply calls `to_iron_response`.
 //!
-//! Additionally there will be a function `into_iron_response` which converts anything into
-//! an `iron::response::Response` that can be converted into a `HttpApiProblem`.
+//! Additionally there will be a function `into_iron_response` which converts
+//! anything into an `iron::response::Response` that can be converted into a
+//! `HttpApiProblem`.
 //!
 //! ### with_hyper
 //!
-//! There is a conversion between `hypers`s StatusCode and `HttpStatusCode` back and forth.
+//! There is a conversion between `hypers`s StatusCode and `HttpStatusCode`
+//! back and forth.
 //!
-//! The `HttpApiProblem` provides a method `to_hyper_response` which constructs an iron `Response`.
-//! If the `status` field of the `HttpApiProblem` is `None` `500 - Internal Server Error` is the default.
+//! The `HttpApiProblem` provides a method `to_hyper_response` which constructs
+//! an iron `Response`. If the `status` field of the `HttpApiProblem` is `None`
+//! `500 - Internal Server Error` is the default.
 //!
-//! `From<HttpApiProblem` for `hyper::Response` will also be there. It simply calls
-//! `to_hyper_response`.
+//! `From<HttpApiProblem` for `hyper::Response` will also be there. It simply
+//! calls `to_hyper_response`.
 //!
-//! Additionally there will be a function `into_iron_response` which converts anything into
-//! a `hyper::Response` that can be converted into a `HttpApiProblem`.
+//! Additionally there will be a function `into_iron_response` which converts
+//! anything into a `hyper::Response` that can be converted into a
+//! `HttpApiProblem`.
 //!
 //! ### with_rocket(nightly only)
 //!
-//! There is a conversion between `rocket`s Status and `HttpStatusCode` back and forth.
+//! There is a conversion between `rocket`s Status and `HttpStatusCode` back
+//! and forth.
 //!
-//! `HttpApiProblem` implements `rocket::response::Responder`, allowing it to be returned
-//! from rocket handlers directly (e.g. as `Result<T, HttpApiProblem>`).
-//! It also provides a method `to_rocket_response` which explicitly constructs a rocket `Response`.
-//! If the `status` field of the `HttpApiProblem` is `None` `500 - Internal Server Error` is the default.
+//! `HttpApiProblem` implements `rocket::response::Responder`, allowing it to
+//! be returned from rocket handlers directly (e.g. as `Result<T,
+//! HttpApiProblem>`). It also provides a method `to_rocket_response` which
+//! explicitly constructs a rocket `Response`. If the `status` field of the
+//! `HttpApiProblem` is `None` `500 - Internal Server Error` is the default.
 //!
-//! `From<HttpApiProblem` for `rocket::Response` will also be there. It simply calls
-//! `to_rocket_response`.
+//! `From<HttpApiProblem` for `rocket::Response` will also be there. It simply
+//! calls `to_rocket_response`.
 //!
-//! Additionally there will be a function `into_rocket_response` which converts anything into
-//! a `rocket::Response` that can be converted into a `HttpApiProblem`.
+//! Additionally there will be a function `into_rocket_response` which converts
+//! anything into a `rocket::Response` that can be converted into a
+//! `HttpApiProblem`.
 //!
 //!
 //! ## Recent changes
 //!
-//!  * 0.5.2
-//!      * Added methods to status code to query its category
-//!  * 0.5.1
-//!      * Support for `Rocket` (contributed by panicbit)
-//!  * 0.5.0
-//!      * Breaking changes, features renamed to `with_iron` and `with_hyper`
-//!      * `to_iron_response` now takes a ref insted of `Self`.
+//! * 0.5.3
+//!     * Fixed JSON mappings(serde attributes were not respected)
+//! * 0.5.2
+//!     * Added methods to status code to query its category
+//! * 0.5.1
+//!     * Support for `Rocket` (contributed by panicbit)
+//! * 0.5.0
+//!     * Breaking changes, features renamed to `with_iron` and `with_hyper`
+//!     * `to_iron_response` now takes a ref insted of `Self`.
 //!
 //! ## License
 //!
-//! `http-api-problem` is primarily distributed under the terms of both the MIT license and the
-//! Apache License (Version 2.0).
+//! `http-api-problem` is primarily distributed under the terms of both the MIT
+//! license and the Apache License (Version 2.0).
 //!
 //! Copyright (c) 2017 Christian Douven.
 #[macro_use]
@@ -165,12 +177,12 @@ pub struct HttpApiProblem {
     /// problem type (e.g., using HTML [W3C.REC-html5-20141028]).  When
     /// this member is not present, its value is assumed to be
     /// "about:blank".
-    #[cfg_attr(feature = "serde", serde(rename = "type"))]
-    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    #[serde(rename = "type")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub type_url: Option<String>,
     /// The HTTP status code [RFC7231, Section 6](https://tools.ietf.org/html/rfc7231#section-6)
     /// generated by the origin server for this occurrence of the problem.
-    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub status: Option<HttpStatusCode>,
     /// A short, human-readable summary of the problem
     /// type. It SHOULD NOT change from occurrence to occurrence of the
@@ -182,12 +194,12 @@ pub struct HttpApiProblem {
     pub title: String,
     /// A human-readable explanation specific to this
     /// occurrence of the problem.
-    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub detail: Option<String>,
     /// A URI reference that identifies the specific
     /// occurrence of the problem.  It may or may not yield further
     /// information if dereferenced.
-    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub instance: Option<String>,
 }
 
@@ -217,7 +229,8 @@ impl HttpApiProblem {
         }
     }
 
-    /// Creates a new instance with the `title` and `type_url` derived from the `status`.
+    /// Creates a new instance with the `title` and `type_url` derived from the
+    /// `status`.
     ///
     /// #Example
     ///
@@ -411,8 +424,8 @@ impl HttpApiProblem {
     /// default.
     #[cfg(feature = "with_hyper")]
     pub fn to_hyper_response(&self) -> hyper::Response {
-        use hyper::StatusCode;
         use hyper::header::{ContentLength, ContentType};
+        use hyper::StatusCode;
         use hyper::*;
         use mime::*;
 
@@ -436,9 +449,9 @@ impl HttpApiProblem {
     /// default.
     #[cfg(feature = "with_rocket")]
     pub fn to_rocket_response(&self) -> rocket::Response<'static> {
-        use rocket::Response;
         use rocket::http::ContentType;
         use rocket::http::Status;
+        use rocket::Response;
         use std::io::Cursor;
 
         let status: Status = self.status.unwrap_or(HttpStatusCode::InternalServerError).into();
@@ -461,7 +474,8 @@ impl From<HttpStatusCode> for HttpApiProblem {
     }
 }
 
-/// Creates an `iron::response::Response` from something that can become an `HttpApiProblem`.
+/// Creates an `iron::response::Response` from something that can become an
+/// `HttpApiProblem`.
 ///
 /// If status is `None` `500 - Internal Server Error` is the
 /// default.
@@ -478,7 +492,8 @@ impl From<HttpApiProblem> for ::iron::response::Response {
     }
 }
 
-/// Creates an `hyper::Response` from something that can become an `HttpApiProblem`.
+/// Creates an `hyper::Response` from something that can become an
+/// `HttpApiProblem`.
 ///
 /// If status is `None` `500 - Internal Server Error` is the
 /// default.
@@ -495,7 +510,8 @@ impl From<HttpApiProblem> for hyper::Response {
     }
 }
 
-/// Creates an `rocket::Response` from something that can become an `HttpApiProblem`.
+/// Creates an `rocket::Response` from something that can become an
+/// `HttpApiProblem`.
 ///
 /// If status is `None` `500 - Internal Server Error` is the
 /// default.
