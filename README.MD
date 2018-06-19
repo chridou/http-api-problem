@@ -103,6 +103,8 @@
 
 
 ## Recent changes
+* 0.6.1
+    * Feature `with_hyper` returns response Vec<u8>
 * 0.6.0
     * Feature `with_hyper` uses hyper 0.12
 * 0.5.3

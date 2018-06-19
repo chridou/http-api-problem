@@ -117,6 +117,8 @@
 //!
 //! ## Recent changes
 //!
+//! * 0.6.1
+//!     * Feature `with_hyper` returns response Vec<u8>
 //! * 0.6.0
 //!     * Feature `with_hyper` uses hyper 0.12
 //! * 0.5.3
@@ -422,7 +424,7 @@ impl HttpApiProblem {
     /// If status is `None` `500 - Internal Server Error` is the
     /// default.
     #[cfg(feature = "with_hyper")]
-    pub fn to_hyper_response(self) -> hyper::Response<HttpApiProblem> {
+    pub fn to_hyper_response(self) -> hyper::Response<Vec<u8>> {
         use hyper::header::{HeaderValue, CONTENT_LENGTH, CONTENT_TYPE};
         use hyper::StatusCode;
         use hyper::*;
@@ -436,8 +438,8 @@ impl HttpApiProblem {
             .status(status)
             .header(CONTENT_TYPE, HeaderValue::from_static(PROBLEM_JSON_MEDIA_TYPE))
             .header(CONTENT_LENGTH, HeaderValue::from_str(&length.to_string()).unwrap())
-            .body(self);
-        let response: Response<HttpApiProblem> = builder.unwrap();
+            .body(json);
+        let response: Response<Vec<u8>> = builder.unwrap();
 
         response
     }
@@ -497,14 +499,14 @@ impl From<HttpApiProblem> for ::iron::response::Response {
 /// If status is `None` `500 - Internal Server Error` is the
 /// default.
 #[cfg(feature = "with_hyper")]
-pub fn into_hyper_response<T: Into<HttpApiProblem>>(what: T) -> hyper::Response<HttpApiProblem> {
+pub fn into_hyper_response<T: Into<HttpApiProblem>>(what: T) -> hyper::Response<Vec<u8>> {
     let problem: HttpApiProblem = what.into();
     problem.to_hyper_response()
 }
 
 #[cfg(feature = "with_hyper")]
-impl From<HttpApiProblem> for hyper::Response<HttpApiProblem> {
-    fn from(problem: HttpApiProblem) -> hyper::Response<HttpApiProblem> {
+impl From<HttpApiProblem> for hyper::Response<Vec<u8>> {
+    fn from(problem: HttpApiProblem) -> hyper::Response<Vec<u8>> {
         problem.to_hyper_response()
     }
 }
