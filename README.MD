@@ -103,7 +103,8 @@
 
 
 ## Recent changes
-
+* 0.6.0
+    * Feature `with_hyper` uses hyper 0.12
 * 0.5.3
     * Fixed JSON mappings(serde attributes were not respected)
 * 0.5.2

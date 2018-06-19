@@ -117,6 +117,8 @@
 //!
 //! ## Recent changes
 //!
+//! * 0.6.0
+//!     * Feature `with_hyper` uses hyper 0.12
 //! * 0.5.3
 //!     * Fixed JSON mappings(serde attributes were not respected)
 //! * 0.5.2
@@ -142,9 +144,6 @@ extern crate iron;
 
 #[cfg(feature = "with_hyper")]
 extern crate hyper;
-
-#[cfg(feature = "with_hyper")]
-extern crate mime;
 
 #[cfg(feature = "with_rocket")]
 extern crate rocket;
@@ -423,22 +422,22 @@ impl HttpApiProblem {
     /// If status is `None` `500 - Internal Server Error` is the
     /// default.
     #[cfg(feature = "with_hyper")]
-    pub fn to_hyper_response(&self) -> hyper::Response {
-        use hyper::header::{ContentLength, ContentType};
+    pub fn to_hyper_response(self) -> hyper::Response<HttpApiProblem> {
+        use hyper::header::{HeaderValue, CONTENT_LENGTH, CONTENT_TYPE};
         use hyper::StatusCode;
         use hyper::*;
-        use mime::*;
 
         let status: StatusCode = self.status.unwrap_or(HttpStatusCode::InternalServerError).into();
 
-        let mime_type: Mime = PROBLEM_JSON_MEDIA_TYPE.parse().unwrap();
         let json = self.json_bytes();
         let length = json.len() as u64;
-        let response = Response::new()
-            .with_status(status)
-            .with_body(json)
-            .with_header(ContentType(mime_type))
-            .with_header(ContentLength(length));
+
+        let builder = Response::builder()
+            .status(status)
+            .header(CONTENT_TYPE, HeaderValue::from_static(PROBLEM_JSON_MEDIA_TYPE))
+            .header(CONTENT_LENGTH, HeaderValue::from_str(&length.to_string()).unwrap())
+            .body(self);
+        let response: Response<HttpApiProblem> = builder.unwrap();
 
         response
     }
@@ -498,14 +497,14 @@ impl From<HttpApiProblem> for ::iron::response::Response {
 /// If status is `None` `500 - Internal Server Error` is the
 /// default.
 #[cfg(feature = "with_hyper")]
-pub fn into_hyper_response<T: Into<HttpApiProblem>>(what: T) -> hyper::Response {
+pub fn into_hyper_response<T: Into<HttpApiProblem>>(what: T) -> hyper::Response<HttpApiProblem> {
     let problem: HttpApiProblem = what.into();
     problem.to_hyper_response()
 }
 
 #[cfg(feature = "with_hyper")]
-impl From<HttpApiProblem> for hyper::Response {
-    fn from(problem: HttpApiProblem) -> hyper::Response {
+impl From<HttpApiProblem> for hyper::Response<HttpApiProblem> {
+    fn from(problem: HttpApiProblem) -> hyper::Response<HttpApiProblem> {
         problem.to_hyper_response()
     }
 }
@@ -910,8 +909,7 @@ impl From<::hyper::StatusCode> for HttpStatusCode {
 #[cfg(feature = "with_hyper")]
 impl From<HttpStatusCode> for ::hyper::StatusCode {
     fn from(status: HttpStatusCode) -> ::hyper::StatusCode {
-        ::hyper::StatusCode::try_from(status.to_u16())
-            .unwrap_or_else(|_| ::hyper::StatusCode::Unregistered(status.to_u16()))
+        ::hyper::StatusCode::from_u16(status.to_u16()).unwrap_or_else(|_| ::hyper::StatusCode::INTERNAL_SERVER_ERROR)
     }
 }
 
