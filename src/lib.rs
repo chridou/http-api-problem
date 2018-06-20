@@ -83,7 +83,7 @@
 //! back and forth.
 //!
 //! The `HttpApiProblem` provides a method `to_hyper_response` which constructs
-//! an iron `Response`. If the `status` field of the `HttpApiProblem` is `None`
+//! a hyper `Response`. If the `status` field of the `HttpApiProblem` is `None`
 //! `500 - Internal Server Error` is the default.
 //!
 //! `From<HttpApiProblem` for `hyper::Response` will also be there. It simply
@@ -92,6 +92,11 @@
 //! Additionally there will be a function `into_iron_response` which converts
 //! anything into a `hyper::Response` that can be converted into a
 //! `HttpApiProblem`.
+//!
+//! ### with_reqwest
+//!
+//! There is a conversion between `reqwest`s StatusCode and `HttpStatusCode`
+//! back and forth.
 //!
 //! ### with_rocket(nightly only)
 //!
@@ -114,21 +119,15 @@
 //!
 //! ## Recent changes
 //!
+//! * 0.7.0
+//!     * Feature `with_reqwest` added
+//!     * `HttpApiProblem` can now contain additional fields
 //! * 0.6.2
 //!     * Feature `with_hyper` returns Response<Body>
 //! * 0.6.1
 //!     * Feature `with_hyper` returns response Vec<u8>
 //! * 0.6.0
 //!     * Feature `with_hyper` uses hyper 0.12
-//! * 0.5.3
-//!     * Fixed JSON mappings(serde attributes were not respected)
-//! * 0.5.2
-//!     * Added methods to status code to query its category
-//! * 0.5.1
-//!     * Support for `Rocket` (contributed by panicbit)
-//! * 0.5.0
-//!     * Breaking changes, features renamed to `with_iron` and `with_hyper`
-//!     * `to_iron_response` now takes a ref insted of `Self`.
 //!
 //! ## License
 //!
@@ -149,9 +148,13 @@ extern crate hyper;
 #[cfg(feature = "with_rocket")]
 extern crate rocket;
 
+#[cfg(feature = "with_reqwest")]
+extern crate reqwest;
+
+use std::collections::HashMap;
 use std::fmt;
 
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{de::DeserializeOwned, Deserialize, Deserializer, Serialize, Serializer};
 
 /// The recommended media type when serialized to JSON
 pub static PROBLEM_JSON_MEDIA_TYPE: &'static str = "application/problem+json";
@@ -201,6 +204,10 @@ pub struct HttpApiProblem {
     /// information if dereferenced.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub instance: Option<String>,
+
+    /// Additional fields that must be JSON values
+    #[serde(flatten)]
+    additional_fields: HashMap<String, serde_json::Value>,
 }
 
 impl HttpApiProblem {
@@ -226,6 +233,7 @@ impl HttpApiProblem {
             title: title.into(),
             detail: None,
             instance: None,
+            additional_fields: Default::default(),
         }
     }
 
@@ -253,6 +261,7 @@ impl HttpApiProblem {
             title: status.title().to_string(),
             detail: None,
             instance: None,
+            additional_fields: Default::default(),
         }
     }
 
@@ -279,6 +288,7 @@ impl HttpApiProblem {
             title: status.title().to_string(),
             detail: None,
             instance: None,
+            additional_fields: Default::default(),
         }
     }
 
@@ -365,6 +375,52 @@ impl HttpApiProblem {
         let mut s = self;
         s.detail = Some(detail.into());
         s
+    }
+
+    /// Add a value that must be serializable. The key must not be one of the
+    /// field names of this struct.
+    pub fn set_value<K, V>(&mut self, key: K, value: &V) -> Result<(), String>
+    where
+        V: Serialize,
+        K: Into<String>,
+    {
+        let key: String = key.into();
+        match key.as_ref() {
+            "type" => return Err("'type' is a reserved field name".into()),
+            "status" => return Err("'status' is a reserved field name".into()),
+            "title" => return Err("'title' is a reserved field name".into()),
+            "detail" => return Err("'detail' is a reserved field name".into()),
+            "instance" => return Err("'instance' is a reserved field name".into()),
+            "additional_fields" => return Err("'additional_fields' is a reserved field name".into()),
+            _ => (),
+        }
+        let serialized = serde_json::to_value(value).map_err(|err| err.to_string())?;
+        self.additional_fields.insert(key, serialized);
+        Ok(())
+    }
+
+    /// Returns the deserialized field for the given key.
+    ///
+    /// If the key does not exist or the field is not deserializable to
+    /// the target type `None` is returned
+    pub fn value<K, V>(&self, key: &str) -> Option<V>
+    where
+        V: DeserializeOwned,
+    {
+        self.json_value(key)
+            .and_then(|v| serde_json::from_value(v.clone()).ok())
+    }
+
+    /// Returns the `serde_json::Value` for the given key if the key exists.
+    pub fn json_value(&self, key: &str) -> Option<&serde_json::Value> {
+        self.additional_fields.get(key)
+    }
+
+    pub fn keys<K, V>(&self) -> impl Iterator<Item = &String>
+    where
+        V: DeserializeOwned,
+    {
+        self.additional_fields.keys()
     }
 
     /// Sets the `instance`
@@ -914,6 +970,20 @@ impl From<HttpStatusCode> for ::hyper::StatusCode {
     }
 }
 
+#[cfg(feature = "with_reqwest")]
+impl From<reqwest::StatusCode> for HttpStatusCode {
+    fn from(reqwest_status: reqwest::StatusCode) -> HttpStatusCode {
+        reqwest_status.as_u16().into()
+    }
+}
+
+#[cfg(feature = "with_reqwest")]
+impl From<HttpStatusCode> for reqwest::StatusCode {
+    fn from(status: HttpStatusCode) -> reqwest::StatusCode {
+        reqwest::StatusCode::try_from(status.to_u16()).unwrap_or_else(|_| reqwest::StatusCode::InternalServerError)
+    }
+}
+
 #[cfg(feature = "with_iron")]
 impl From<::iron::status::Status> for HttpStatusCode {
     fn from(iron_status: ::iron::status::Status) -> HttpStatusCode {
@@ -942,5 +1012,28 @@ impl From<HttpStatusCode> for ::rocket::http::Status {
 
         let code = status.to_u16();
         Status::from_code(code).unwrap_or(Status::new(code, ""))
+    }
+}
+
+#[cfg(all(feature = "with_iron", feature = "with_hyper", feature = "with_reqwest", test))]
+mod compatibility_test {
+    use super::*;
+
+    use hyper::StatusCode as HyperStatus;
+    use iron::status::Status as IronStatus;
+    use reqwest::StatusCode as ReqwestStatus;
+
+    #[test]
+    fn it_must_work_for_all_stable_features_together() {
+        let http_status = HttpStatusCode::InternalServerError;
+
+        let hyper_status: HyperStatus = http_status.into();
+        let http_status: HttpStatusCode = hyper_status.into();
+        let iron_status: IronStatus = http_status.into();
+        let http_status: HttpStatusCode = iron_status.into();
+        let reqwest_status: ReqwestStatus = http_status.into();
+        let http_status: HttpStatusCode = reqwest_status.into();
+
+        assert_eq!(http_status, HttpStatusCode::InternalServerError);
     }
 }

@@ -83,7 +83,7 @@ There is a conversion between `hypers`s StatusCode and `HttpStatusCode`
 back and forth.
 
 The `HttpApiProblem` provides a method `to_hyper_response` which constructs
-an iron `Response`. If the `status` field of the `HttpApiProblem` is `None`
+a hyper `Response`. If the `status` field of the `HttpApiProblem` is `None`
 `500 - Internal Server Error` is the default.
 
 `From<HttpApiProblem` for `hyper::Response` will also be there. It simply
@@ -92,6 +92,11 @@ calls `to_hyper_response`.
 Additionally there will be a function `into_iron_response` which converts
 anything into a `hyper::Response` that can be converted into a
 `HttpApiProblem`.
+
+### with_reqwest
+
+There is a conversion between `reqwest`s StatusCode and `HttpStatusCode`
+back and forth.
 
 ### with_rocket(nightly only)
 
@@ -114,21 +119,15 @@ anything into a `rocket::Response` that can be converted into a
 
 ## Recent changes
 
+* 0.7.0
+    * Feature `with_reqwest` added
+    * `HttpApiProblem` can now contain additional fields
 * 0.6.2
     * Feature `with_hyper` returns Response<Body>
 * 0.6.1
     * Feature `with_hyper` returns response Vec<u8>
 * 0.6.0
     * Feature `with_hyper` uses hyper 0.12
-* 0.5.3
-    * Fixed JSON mappings(serde attributes were not respected)
-* 0.5.2
-    * Added methods to status code to query its category
-* 0.5.1
-    * Support for `Rocket` (contributed by panicbit)
-* 0.5.0
-    * Breaking changes, features renamed to `with_iron` and `with_hyper`
-    * `to_iron_response` now takes a ref insted of `Self`.
 
 ## License
 
