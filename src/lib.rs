@@ -119,6 +119,8 @@
 //!
 //! ## Recent changes
 //!
+//! * 0.9.0
+//!     * removed  feature `with-reqwest` since it was bumped to 0.9
 //! * 0.7.0
 //!     * Feature `with_reqwest` added
 //!     * `HttpApiProblem` can now contain additional fields
@@ -147,9 +149,6 @@ extern crate hyper;
 
 #[cfg(feature = "with_rocket")]
 extern crate rocket;
-
-#[cfg(feature = "with_reqwest")]
-extern crate reqwest;
 
 use std::collections::HashMap;
 use std::fmt;
@@ -970,20 +969,6 @@ impl From<HttpStatusCode> for ::hyper::StatusCode {
     }
 }
 
-#[cfg(feature = "with_reqwest")]
-impl From<reqwest::StatusCode> for HttpStatusCode {
-    fn from(reqwest_status: reqwest::StatusCode) -> HttpStatusCode {
-        reqwest_status.as_u16().into()
-    }
-}
-
-#[cfg(feature = "with_reqwest")]
-impl From<HttpStatusCode> for reqwest::StatusCode {
-    fn from(status: HttpStatusCode) -> reqwest::StatusCode {
-        reqwest::StatusCode::try_from(status.to_u16()).unwrap_or_else(|_| reqwest::StatusCode::InternalServerError)
-    }
-}
-
 #[cfg(feature = "with_iron")]
 impl From<::iron::status::Status> for HttpStatusCode {
     fn from(iron_status: ::iron::status::Status) -> HttpStatusCode {
@@ -1015,13 +1000,12 @@ impl From<HttpStatusCode> for ::rocket::http::Status {
     }
 }
 
-#[cfg(all(feature = "with_iron", feature = "with_hyper", feature = "with_reqwest", test))]
+#[cfg(all(feature = "with_iron", feature = "with_hyper", test))]
 mod compatibility_test {
     use super::*;
 
     use hyper::StatusCode as HyperStatus;
     use iron::status::Status as IronStatus;
-    use reqwest::StatusCode as ReqwestStatus;
 
     #[test]
     fn it_must_work_for_all_stable_features_together() {
@@ -1029,11 +1013,10 @@ mod compatibility_test {
 
         let hyper_status: HyperStatus = http_status.into();
         let http_status: HttpStatusCode = hyper_status.into();
+        assert_eq!(http_status, HttpStatusCode::InternalServerError);
+
         let iron_status: IronStatus = http_status.into();
         let http_status: HttpStatusCode = iron_status.into();
-        let reqwest_status: ReqwestStatus = http_status.into();
-        let http_status: HttpStatusCode = reqwest_status.into();
-
         assert_eq!(http_status, HttpStatusCode::InternalServerError);
     }
 }

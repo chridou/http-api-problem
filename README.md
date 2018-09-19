@@ -119,6 +119,8 @@ anything into a `rocket::Response` that can be converted into a
 
 ## Recent changes
 
+* 0.9.0
+    * removed  feature `with-reqwest` since it was bumped to 0.9
 * 0.7.0
     * Feature `with_reqwest` added
     * `HttpApiProblem` can now contain additional fields
