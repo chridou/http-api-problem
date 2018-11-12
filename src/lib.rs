@@ -285,7 +285,7 @@ impl HttpApiProblem {
         HttpApiProblem {
             type_url: None,
             status: Some(status.into()),
-            title: status.canonical_reason().expect("unknown status code").to_string(),
+            title: status.canonical_reason().unwrap_or("<unknown status code>").to_string(),
             detail: None,
             instance: None,
             additional_fields: Default::default(),
