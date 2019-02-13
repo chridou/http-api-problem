@@ -618,9 +618,9 @@ mod custom_http_status_serialization {
     {
         let s: Option<u16> = Option::deserialize(deserializer)?;
         if let Some(numeric_status_code) = s {
-            // The deserialization should not fail because of an invalid status code.
-            let status_code = HttpTryFrom::try_from(numeric_status_code).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
-            return Ok(Some(status_code));
+            // If the status code numeral is invalid we somply have none...
+            let status_code = HttpTryFrom::try_from(numeric_status_code).ok();
+            return Ok(status_code);
         }
 
         Ok(None)
