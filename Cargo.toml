@@ -1,6 +1,6 @@
 [package]
 name = "http-api-problem"
-version = "0.9.0"
+version = "0.10.0"
 authors = ["Christian Douven <chridou@users.noreply.github.com>"]
 description = "A library to create HTTP error response content for APIs based on RFC 7807"
 repository = "https://github.com/chridou/http-api-problem"
@@ -10,13 +10,15 @@ readme = "README.md"
 keywords = ["http", "api", "json", "error", "7807"]
 categories = ["web-programming"]
 license = "Apache-2.0/MIT"
+edition = "2018"
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0" }
+http = { version = "0.1" }
 iron = { version = "0.6", optional = true }
 hyper = { version = "0.12", optional = true }
-rocket = { version = "0.3", optional = true }
+rocket = { version = "0.4", optional = true }
 
 [features]
 with_iron = ["iron"]

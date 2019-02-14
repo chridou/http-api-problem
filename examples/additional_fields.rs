@@ -12,7 +12,7 @@ struct Person {
 }
 
 fn main() {
-    let mut problem = HttpApiProblem::with_title_and_type_from_status(500);
+    let mut problem = HttpApiProblem::with_title_and_type_from_status(StatusCode::INTERNAL_SERVER_ERROR);
 
     problem.set_value("error", &"this sucks".to_string()).unwrap();
     problem.set_value("everything", &42).unwrap();
