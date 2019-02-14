@@ -258,9 +258,16 @@ impl fmt::Display for ApiError {
     }
 }
 
+
 impl From<StatusCode> for ApiError {
     fn from(s: StatusCode) -> Self {
         Self::new(s)
+    }
+}
+
+impl From<ApiError> for HttpApiProblem {
+    fn from(error: ApiError) -> Self {
+        error.into_http_api_problem()
     }
 }
 
