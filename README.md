@@ -95,10 +95,6 @@ Additionally there will be a function `into_iron_response` which converts
 anything into a `hyper::Response` that can be converted into a
 `HttpApiProblem`.
 
-### with_reqwest
-
-There is a conversion between `reqwest`s StatusCode and `HttpStatusCode`
-back and forth.
 
 ### with_rocket(nightly only)
 
@@ -121,6 +117,7 @@ anything into a `rocket::Response` that can be converted into a
 
 ## Recent changes
 
+* 0.11.0 Added `actix_web` support
 * 0.10.0 Use `http::StatusCode` **Breaking change**
 * 0.9.0
     * removed  feature `with-reqwest` since it was bumped to 0.9
@@ -133,6 +130,13 @@ anything into a `rocket::Response` that can be converted into a
     * Feature `with_hyper` returns response Vec<u8>
 * 0.6.0
     * Feature `with_hyper` uses hyper 0.12
+
+## Thank you
+A big "thank you" for contributions and inspirations goes to the
+following GitHub users:
+
+* panicbit
+* thomaseizinger
 
 ## License
 
