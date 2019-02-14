@@ -13,8 +13,8 @@ use std::fmt;
 use std::io;
 
 use failure::*;
-use serde_json::Value;
 use serde::Serialize;
+use serde_json::Value;
 
 use super::*;
 
@@ -77,13 +77,15 @@ impl ApiError {
             fields: HashMap::new(),
             title: None,
             cause: Some(Box::new(err)),
-                       backtrace: Backtrace::new(),
-
+            backtrace: Backtrace::new(),
         }
     }
 
+    pub fn set_cause<F: Fail>(&mut self, cause: F) {
+        self.cause = Some(Box::new(cause))
+    }
 
-   /// Adds a serializable field. If the serialization fails nothing will be
+    /// Adds a serializable field. If the serialization fails nothing will be
     /// added. This method returns `true` if the field was added and `false` if
     /// the field could not be added.
     ///
@@ -110,7 +112,6 @@ impl ApiError {
         }
     }
 
-
     pub fn to_http_api_problem(&self) -> HttpApiProblem {
         let mut problem = HttpApiProblem::with_title_and_type_from_status(self.status)
             .set_detail(self.message.clone());
@@ -130,11 +131,11 @@ impl ApiError {
         }
 
         problem
-   }
+    }
 
-       pub fn into_http_api_problem(self) -> HttpApiProblem {
-        let mut problem = HttpApiProblem::with_title_and_type_from_status(self.status)
-            .set_detail(self.message);
+    pub fn into_http_api_problem(self) -> HttpApiProblem {
+        let mut problem =
+            HttpApiProblem::with_title_and_type_from_status(self.status).set_detail(self.message);
 
         if let Some(custom_type_url) = self.type_url {
             problem.type_url = Some(custom_type_url)
@@ -151,20 +152,18 @@ impl ApiError {
         }
 
         problem
-   }
+    }
 
-
-     #[cfg(feature = "with_hyper")]
-    pub fn into_hyper_response(self) -> hyper::Response<hyper::Body>{
+    #[cfg(feature = "with_hyper")]
+    pub fn into_hyper_response(self) -> hyper::Response<hyper::Body> {
         let problem = self.into_http_api_problem();
         problem.to_hyper_response()
     }
 
-
-          #[cfg(feature = "with_actix_web")]
-    pub fn into_actix_web_response(self) -> actix_web::HttpResponse{
-         let problem = self.into_http_api_problem();
-         problem.into()
+    #[cfg(feature = "with_actix_web")]
+    pub fn into_actix_web_response(self) -> actix_web::HttpResponse {
+        let problem = self.into_http_api_problem();
+        problem.into()
     }
 }
 
@@ -196,9 +195,8 @@ where
     fn from(v: (S, M)) -> Self {
         let (status, message) = v;
         Self::new(status, message)
- }
+    }
 }
-
 
 impl<S, M, F> From<(S, M, F)> for ApiError
 where
@@ -209,7 +207,7 @@ where
     fn from(v: (S, M, F)) -> Self {
         let (status, message, err) = v;
         Self::with_cause(status, message, err)
- }
+    }
 }
 
 impl From<ApiError> for HttpApiProblem {
@@ -223,7 +221,7 @@ impl From<io::Error> for ApiError {
         ApiError::with_cause(
             StatusCode::INTERNAL_SERVER_ERROR,
             "An internal error IO error occurred",
-            error
+            error,
         )
     }
 }
@@ -245,7 +243,7 @@ impl From<actix::prelude::MailboxError> for ApiError {
         ApiError::with_cause(
             StatusCode::INTERNAL_SERVER_ERROR,
             "An internal error caused by internal messaging occured",
-            error
+            error,
         )
     }
 }
