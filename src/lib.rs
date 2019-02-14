@@ -121,19 +121,9 @@
 //!
 //! ## Recent changes
 //!
+//! * 0.12.0 Added experimental APIError type
 //! * 0.11.0 Added `actix_web` support
 //! * 0.10.0 Use `http::StatusCode` **Breaking change**
-//! * 0.9.0
-//!     * removed  feature `with-reqwest` since it was bumped to 0.9
-//! * 0.7.0
-//!     * Feature `with_reqwest` added
-//!     * `HttpApiProblem` can now contain additional fields
-//! * 0.6.2
-//!     * Feature `with_hyper` returns Response<Body>
-//! * 0.6.1
-//!     * Feature `with_hyper` returns response Vec<u8>
-//! * 0.6.0
-//!     * Feature `with_hyper` uses hyper 0.12
 //!
 //! ## Thank you
 //!
@@ -162,6 +152,11 @@ extern crate hyper;
 
 #[cfg(feature = "with_rocket")]
 extern crate rocket;
+
+#[cfg(feature = "with_api_error")]
+mod api_error;
+#[cfg(feature = "with_api_error")]
+pub use api_error::*;
 
 use serde::{de::DeserializeOwned, Serialize};
 use std::collections::HashMap;
@@ -477,12 +472,12 @@ impl HttpApiProblem {
         serde_json::to_string(self).unwrap()
     }
 
-    fn status(&self) -> StatusCode {
+    pub fn status_or_internal_server_error(&self) -> StatusCode {
         self.status.unwrap_or(StatusCode::INTERNAL_SERVER_ERROR)
     }
 
-    fn status_code(&self) -> u16 {
-        self.status().as_u16()
+    pub fn status_code_or_internal_server_error(&self) -> u16 {
+        self.status_or_internal_server_error().as_u16()
     }
 
     /// Creates an `iron` response.
@@ -526,7 +521,7 @@ impl HttpApiProblem {
             CONTENT_LENGTH,
             HeaderValue::from_str(&length.to_string()).unwrap(),
         );
-        parts.status = self.status();
+        parts.status = self.status_or_internal_server_error();
 
         Response::from_parts(parts, body)
     }
@@ -545,7 +540,7 @@ impl HttpApiProblem {
         let content_type: ContentType = PROBLEM_JSON_MEDIA_TYPE.parse().unwrap();
         let json = self.json_bytes();
         let response = Response::build()
-            .status(Status::raw(self.status_code()))
+            .status(Status::raw(self.status_code_or_internal_server_error()))
             .sized_body(Cursor::new(json))
             .header(content_type)
             .finalize();
@@ -558,9 +553,9 @@ impl HttpApiProblem {
     /// If status is `None` or not convertible
     /// to an actix status `500 - Internal Server Error` is the
     /// default.
-    #[cfg(feature = "with_actix")]
+    #[cfg(feature = "with_actix_web")]
     pub fn to_actix_response(&self) -> actix_web::HttpResponse {
-        let effective_status = self.status.unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
+        let effective_status = self.status_or_internal_server_error();
         let actix_status = actix_web::http::StatusCode::from_u16(effective_status.as_u16())
             .unwrap_or(actix_web::http::StatusCode::INTERNAL_SERVER_ERROR);
 
@@ -571,8 +566,7 @@ impl HttpApiProblem {
                 actix_web::http::header::CONTENT_TYPE,
                 PROBLEM_JSON_MEDIA_TYPE,
             )
-            .body(json)
-            .finish();
+            .body(json);
         response
     }
 }
@@ -624,13 +618,13 @@ impl From<HttpApiProblem> for hyper::Response<hyper::Body> {
 ///
 /// If status is `None` `500 - Internal Server Error` is the
 /// default.
-#[cfg(feature = "with_actix")]
+#[cfg(feature = "with_actix_web")]
 pub fn into_actix_response<T: Into<HttpApiProblem>>(what: T) -> actix_web::HttpResponse {
     let problem: HttpApiProblem = what.into();
     problem.to_actix_response()
 }
 
-#[cfg(feature = "with_actix")]
+#[cfg(feature = "with_actix_web")]
 impl From<HttpApiProblem> for actix_web::HttpResponse {
     fn from(problem: HttpApiProblem) -> actix_web::HttpResponse {
         problem.to_actix_response()
