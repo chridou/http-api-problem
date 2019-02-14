@@ -212,7 +212,7 @@ where
 
 impl From<ApiError> for HttpApiProblem {
     fn from(error: ApiError) -> Self {
-        error.into()
+        error.into_http_api_problem()
     }
 }
 
