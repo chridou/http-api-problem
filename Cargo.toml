@@ -1,6 +1,6 @@
 [package]
 name = "http-api-problem"
-version = "0.11.0"
+version = "0.12.0"
 authors = ["Christian Douven <chridou@users.noreply.github.com>"]
 description = "A library to create HTTP error response content for APIs based on RFC 7807"
 repository = "https://github.com/chridou/http-api-problem"
@@ -20,9 +20,12 @@ iron = { version = "0.6", optional = true }
 hyper = { version = "0.12", optional = true }
 rocket = { version = "0.4", optional = true }
 actix-web = { version = "0.7", optional = true }
+actix = { version = "0.7", optional = true }
+failure = { version = "0.1", optional = true }
 
 [features]
-with_actix_web = ["actix-web"]
+with_actix_web = ["actix-web", "actix"]
 with_hyper = ["hyper"]
 with_iron = ["iron"]
 with_rocket = ["rocket"]
+with_api_error = ["failure"]
