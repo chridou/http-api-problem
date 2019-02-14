@@ -121,6 +121,7 @@
 //!
 //! ## Recent changes
 //!
+//! * 0.11.0 Added `actix_web` support
 //! * 0.10.0 Use `http::StatusCode` **Breaking change**
 //! * 0.9.0
 //!     * removed  feature `with-reqwest` since it was bumped to 0.9
@@ -133,6 +134,14 @@
 //!     * Feature `with_hyper` returns response Vec<u8>
 //! * 0.6.0
 //!     * Feature `with_hyper` uses hyper 0.12
+//!
+//! ## Thank you
+//!
+//! A big "thank you" for contributions and inspirations goes to the
+//! following GitHub users:
+//!
+//! * panicbit
+//! * thomaseizinger
 //!
 //! ## License
 //!
@@ -157,7 +166,7 @@ extern crate rocket;
 use serde::{de::DeserializeOwned, Serialize};
 use std::collections::HashMap;
 
-pub use http::StatusCode;
+pub use http::{HttpTryFrom, StatusCode};
 
 /// The recommended media type when serialized to JSON
 pub static PROBLEM_JSON_MEDIA_TYPE: &'static str = "application/problem+json";
@@ -264,7 +273,10 @@ impl HttpApiProblem {
         HttpApiProblem {
             type_url: Some(format!("https://httpstatuses.com/{}", status.as_u16())),
             status: Some(status.into()),
-            title: status.canonical_reason().unwrap_or("<unknown status code>").to_string(),
+            title: status
+                .canonical_reason()
+                .unwrap_or("<unknown status code>")
+                .to_string(),
             detail: None,
             instance: None,
             additional_fields: Default::default(),
@@ -291,7 +303,10 @@ impl HttpApiProblem {
         HttpApiProblem {
             type_url: None,
             status: Some(status.into()),
-            title: status.canonical_reason().unwrap_or("<unknown status code>").to_string(),
+            title: status
+                .canonical_reason()
+                .unwrap_or("<unknown status code>")
+                .to_string(),
             detail: None,
             instance: None,
             additional_fields: Default::default(),
@@ -397,7 +412,9 @@ impl HttpApiProblem {
             "title" => return Err("'title' is a reserved field name".into()),
             "detail" => return Err("'detail' is a reserved field name".into()),
             "instance" => return Err("'instance' is a reserved field name".into()),
-            "additional_fields" => return Err("'additional_fields' is a reserved field name".into()),
+            "additional_fields" => {
+                return Err("'additional_fields' is a reserved field name".into());
+            }
             _ => (),
         }
         let serialized = serde_json::to_value(value).map_err(|err| err.to_string())?;
@@ -479,7 +496,8 @@ impl HttpApiProblem {
         use iron::status::Status;
         use iron::*;
 
-        let mut response = Response::with((Status::from_u16(self.status_code()), self.json_bytes()));
+        let mut response =
+            Response::with((Status::from_u16(self.status_code()), self.json_bytes()));
         let mime: Mime = PROBLEM_JSON_MEDIA_TYPE.parse().unwrap();
         response.headers.set(ContentType(mime));
 
@@ -500,12 +518,14 @@ impl HttpApiProblem {
 
         let (mut parts, body) = Response::new(json.into()).into_parts();
 
-        parts
-            .headers
-            .insert(CONTENT_TYPE, HeaderValue::from_static(PROBLEM_JSON_MEDIA_TYPE));
-        parts
-            .headers
-            .insert(CONTENT_LENGTH, HeaderValue::from_str(&length.to_string()).unwrap());
+        parts.headers.insert(
+            CONTENT_TYPE,
+            HeaderValue::from_static(PROBLEM_JSON_MEDIA_TYPE),
+        );
+        parts.headers.insert(
+            CONTENT_LENGTH,
+            HeaderValue::from_str(&length.to_string()).unwrap(),
+        );
         parts.status = self.status();
 
         Response::from_parts(parts, body)
@@ -530,6 +550,29 @@ impl HttpApiProblem {
             .header(content_type)
             .finalize();
 
+        response
+    }
+
+    /// Creates an `anctix` response.
+    ///
+    /// If status is `None` or not convertible
+    /// to an actix status `500 - Internal Server Error` is the
+    /// default.
+    #[cfg(feature = "with_actix")]
+    pub fn to_actix_response(&self) -> actix_web::HttpResponse {
+        let effective_status = self.status.unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
+        let actix_status = actix_web::http::StatusCode::from_u16(effective_status.as_u16())
+            .unwrap_or(actix_web::http::StatusCode::INTERNAL_SERVER_ERROR);
+
+        let json = self.json_bytes();
+
+        let response = actix_web::HttpResponse::build(actix_status)
+            .header(
+                actix_web::http::header::CONTENT_TYPE,
+                PROBLEM_JSON_MEDIA_TYPE,
+            )
+            .body(json)
+            .finish();
         response
     }
 }
@@ -576,6 +619,24 @@ impl From<HttpApiProblem> for hyper::Response<hyper::Body> {
     }
 }
 
+// Creates an `actix::HttpResponse` from something that can become an
+/// `HttpApiProblem`.
+///
+/// If status is `None` `500 - Internal Server Error` is the
+/// default.
+#[cfg(feature = "with_actix")]
+pub fn into_actix_response<T: Into<HttpApiProblem>>(what: T) -> actix_web::HttpResponse {
+    let problem: HttpApiProblem = what.into();
+    problem.to_actix_response()
+}
+
+#[cfg(feature = "with_actix")]
+impl From<HttpApiProblem> for actix_web::HttpResponse {
+    fn from(problem: HttpApiProblem) -> actix_web::HttpResponse {
+        problem.to_actix_response()
+    }
+}
+
 /// Creates an `rocket::Response` from something that can become an
 /// `HttpApiProblem`.
 ///
@@ -596,7 +657,10 @@ impl From<HttpApiProblem> for ::rocket::Response<'static> {
 
 #[cfg(feature = "with_rocket")]
 impl<'r> ::rocket::response::Responder<'r> for HttpApiProblem {
-    fn respond_to(self, _request: &::rocket::Request) -> Result<::rocket::Response<'r>, ::rocket::http::Status> {
+    fn respond_to(
+        self,
+        _request: &::rocket::Request,
+    ) -> Result<::rocket::Response<'r>, ::rocket::http::Status> {
         Ok(self.into())
     }
 }
