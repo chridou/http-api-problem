@@ -10,6 +10,8 @@
 //! A library to create HTTP response content for APIs based on
 //! [RFC7807](https://tools.ietf.org/html/rfc7807).
 //!
+//! ** Breaking changes! This crate now uses `http::StatusCode` instead of the own custom one **
+//!
 //! ## Usage
 //!
 //! Get the latest version for your `Cargo.toml` from
@@ -119,6 +121,7 @@
 //!
 //! ## Recent changes
 //!
+//! * 0.10.0 Use `http::StatusCode` **Breaking change**
 //! * 0.9.0
 //!     * removed  feature `with-reqwest` since it was bumped to 0.9
 //! * 0.7.0
