@@ -8,6 +8,7 @@
 //!
 //! * `ApiError` can be converted to a `HttpApiProblem`
 //! * `ApiError` can be converted to a `hyper::Response` containing
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fmt;
 use std::io;
@@ -28,7 +29,12 @@ pub struct ApiError {
     /// A message that describes the error in a human readable form.
     ///
     /// In an `HttpApiProblem` this becomes the `detail` in most cases.
-    pub message: String,
+    ///
+    /// If None:
+    ///
+    /// * If there is a cause, this will become the details
+    /// * Otherwise there will be no details
+    pub message: Option<String>,
     /// The suggested status code for the server to be returned to the client
     pub status: StatusCode,
     /// A URL that points to a detailed description of the error. If not
@@ -48,14 +54,13 @@ pub struct ApiError {
 }
 
 impl ApiError {
-    pub fn new<S, M>(status: S, message: M) -> Self
+    pub fn new<S>(status: S) -> Self
     where
-        M: Into<String>,
         S: Into<StatusCode>,
     {
         Self {
             status: status.into(),
-            message: message.into(),
+            message: None,
             type_url: None,
             fields: HashMap::new(),
             title: None,
@@ -64,7 +69,39 @@ impl ApiError {
         }
     }
 
-    pub fn with_cause<S, M, F>(status: S, message: M, err: F) -> Self
+    pub fn with_message<S, M>(status: S, message: M) -> Self
+    where
+        M: Into<String>,
+        S: Into<StatusCode>,
+    {
+        Self {
+            status: status.into(),
+            message: Some(message.into()),
+            type_url: None,
+            fields: HashMap::new(),
+            title: None,
+            cause: None,
+            backtrace: Backtrace::new(),
+        }
+    }
+
+    pub fn with_cause<S, F>(status: S, err: F) -> Self
+    where
+        S: Into<StatusCode>,
+        F: Fail,
+    {
+        Self {
+            status: status.into(),
+            message: None,
+            type_url: None,
+            fields: HashMap::new(),
+            title: None,
+            cause: Some(Box::new(err)),
+            backtrace: Backtrace::new(),
+        }
+    }
+
+    pub fn with_message_and_cause<S, M, F>(status: S, message: M, err: F) -> Self
     where
         S: Into<StatusCode>,
         M: Into<String>,
@@ -72,13 +109,25 @@ impl ApiError {
     {
         Self {
             status: status.into(),
-            message: message.into(),
+            message: Some(message.into()),
             type_url: None,
             fields: HashMap::new(),
             title: None,
             cause: Some(Box::new(err)),
             backtrace: Backtrace::new(),
         }
+    }
+
+    pub fn display_message(&self) -> Cow<str> {
+        if let Some(message) = self.detail_message() {
+            return message;
+        }
+
+        if let Some(canonical_reason) = self.status.canonical_reason() {
+            return Cow::Borrowed(canonical_reason);
+        }
+
+        Cow::Borrowed(self.status.as_str())
     }
 
     pub fn set_cause<F: Fail>(&mut self, cause: F) {
@@ -113,8 +162,11 @@ impl ApiError {
     }
 
     pub fn to_http_api_problem(&self) -> HttpApiProblem {
-        let mut problem = HttpApiProblem::with_title_and_type_from_status(self.status)
-            .set_detail(self.message.clone());
+        let mut problem = HttpApiProblem::with_title_and_type_from_status(self.status);
+
+        if let Some(detail_message) = self.detail_message() {
+            problem.detail = Some(detail_message.to_string())
+        }
 
         if let Some(custom_type_url) = self.type_url.as_ref() {
             problem.type_url = Some(custom_type_url.to_string())
@@ -134,8 +186,11 @@ impl ApiError {
     }
 
     pub fn into_http_api_problem(self) -> HttpApiProblem {
-        let mut problem =
-            HttpApiProblem::with_title_and_type_from_status(self.status).set_detail(self.message);
+        let mut problem = HttpApiProblem::with_title_and_type_from_status(self.status);
+
+        if let Some(detail_message) = self.detail_message() {
+            problem.detail = Some(detail_message.to_string())
+        }
 
         if let Some(custom_type_url) = self.type_url {
             problem.type_url = Some(custom_type_url)
@@ -152,6 +207,18 @@ impl ApiError {
         }
 
         problem
+    }
+
+    fn detail_message(&self) -> Option<Cow<str>> {
+        if let Some(message) = self.message.as_ref() {
+            return Some(Cow::Borrowed(message));
+        }
+
+        if let Some(cause) = self.cause() {
+            return Some(Cow::Owned(cause.to_string()));
+        }
+
+        None
     }
 
     #[cfg(feature = "with_hyper")]
@@ -183,42 +250,23 @@ impl Fail for ApiError {
 
 impl fmt::Display for ApiError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}: {}", self.status, self.message)
+        if let Some(detail_message) = self.detail_message() {
+            write!(f, "{}: {}", self.status, detail_message)
+        } else {
+            write!(f, "{}", self.status)
+        }
     }
 }
 
-impl<S, M> From<(S, M)> for ApiError
-where
-    S: Into<StatusCode>,
-    M: Into<String>,
-{
-    fn from(v: (S, M)) -> Self {
-        let (status, message) = v;
-        Self::new(status, message)
-    }
-}
-
-impl<S, M, F> From<(S, M, F)> for ApiError
-where
-    S: Into<StatusCode>,
-    M: Into<String>,
-    F: Fail,
-{
-    fn from(v: (S, M, F)) -> Self {
-        let (status, message, err) = v;
-        Self::with_cause(status, message, err)
-    }
-}
-
-impl From<ApiError> for HttpApiProblem {
-    fn from(error: ApiError) -> Self {
-        error.into_http_api_problem()
+impl From<StatusCode> for ApiError {
+    fn from(s: StatusCode) -> Self {
+        Self::new(s)
     }
 }
 
 impl From<io::Error> for ApiError {
     fn from(error: io::Error) -> Self {
-        ApiError::with_cause(
+        ApiError::with_message_and_cause(
             StatusCode::INTERNAL_SERVER_ERROR,
             "An internal error IO error occurred",
             error,
@@ -229,7 +277,7 @@ impl From<io::Error> for ApiError {
 #[cfg(feature = "with_hyper")]
 impl From<hyper::error::Error> for ApiError {
     fn from(error: hyper::error::Error) -> Self {
-        ApiError::with_cause(
+        ApiError::with_message_and_cause(
             StatusCode::INTERNAL_SERVER_ERROR,
             "An internal error caused by hyper occurred",
             error,
@@ -240,7 +288,7 @@ impl From<hyper::error::Error> for ApiError {
 #[cfg(feature = "with_actix_web")]
 impl From<actix::prelude::MailboxError> for ApiError {
     fn from(error: actix::prelude::MailboxError) -> Self {
-        ApiError::with_cause(
+        ApiError::with_message_and_cause(
             StatusCode::INTERNAL_SERVER_ERROR,
             "An internal error caused by internal messaging occured",
             error,
