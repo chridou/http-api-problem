@@ -100,39 +100,6 @@
 //! There is a conversion between `reqwest`s StatusCode and `StatusCode`
 //! back and forth.
 //!
-//! ### with_rocket(nightly only)
-//!
-//! There is a conversion between `rocket`s Status and `StatusCode` back
-//! and forth.
-//!
-//! `HttpApiProblem` implements `rocket::response::Responder`, allowing it to
-//! be returned from rocket handlers directly (e.g. as `Result<T,
-//! HttpApiProblem>`). It also provides a method `to_rocket_response` which
-//! explicitly constructs a rocket `Response`. If the `status` field of the
-//! `HttpApiProblem` is `None` `500 - Internal Server Error` is the default.
-//!
-//! `From<HttpApiProblem` for `rocket::Response` will also be there. It simply
-//! calls `to_rocket_response`.
-//!
-//! Additionally there will be a function `into_rocket_response` which converts
-//! anything into a `rocket::Response` that can be converted into a
-//! `HttpApiProblem`.
-//!
-//!
-//! ## Recent changes
-//!
-//! * 0.12.0 Added experimental APIError type
-//! * 0.11.0 Added `actix_web` support
-//! * 0.10.0 Use `http::StatusCode` **Breaking change**
-//!
-//! ## Thank you
-//!
-//! A big "thank you" for contributions and inspirations goes to the
-//! following GitHub users:
-//!
-//! * panicbit
-//! * thomaseizinger
-//!
 //! ## License
 //!
 //! `http-api-problem` is primarily distributed under the terms of both the MIT
@@ -143,9 +110,6 @@
 extern crate serde;
 extern crate http;
 extern crate serde_json;
-
-#[cfg(feature = "with_iron")]
-extern crate iron;
 
 #[cfg(feature = "with_hyper")]
 extern crate hyper;
@@ -480,25 +444,6 @@ impl HttpApiProblem {
         self.status_or_internal_server_error().as_u16()
     }
 
-    /// Creates an `iron` response.
-    ///
-    /// If status is `None` `500 - Internal Server Error` is the
-    /// default.
-    #[cfg(feature = "with_iron")]
-    pub fn to_iron_response(&self) -> ::iron::response::Response {
-        use iron::headers::ContentType;
-        use iron::mime::Mime;
-        use iron::status::Status;
-        use iron::*;
-
-        let mut response =
-            Response::with((Status::from_u16(self.status_code()), self.json_bytes()));
-        let mime: Mime = PROBLEM_JSON_MEDIA_TYPE.parse().unwrap();
-        response.headers.set(ContentType(mime));
-
-        response
-    }
-
     /// Creates a `hyper` response.
     ///
     /// If status is `None` `500 - Internal Server Error` is the
@@ -575,17 +520,6 @@ impl From<StatusCode> for HttpApiProblem {
     fn from(status: StatusCode) -> HttpApiProblem {
         HttpApiProblem::with_title_from_status(status)
     }
-}
-
-/// Creates an `iron::response::Response` from something that can become an
-/// `HttpApiProblem`.
-///
-/// If status is `None` `500 - Internal Server Error` is the
-/// default.
-#[cfg(feature = "with_iron")]
-pub fn into_iron_response<T: Into<HttpApiProblem>>(what: T) -> ::iron::response::Response {
-    let problem: HttpApiProblem = what.into();
-    problem.to_iron_response()
 }
 
 #[cfg(feature = "with_iron")]

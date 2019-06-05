@@ -96,28 +96,13 @@ anything into a `hyper::Response` that can be converted into a
 `HttpApiProblem`.
 
 
-### with_rocket(nightly only)
-
-There is a conversion between `rocket`s Status and `HttpStatusCode` back
-and forth.
-
-`HttpApiProblem` implements `rocket::response::Responder`, allowing it to
-be returned from rocket handlers directly (e.g. as `Result<T,
-HttpApiProblem>`). It also provides a method `to_rocket_response` which
-explicitly constructs a rocket `Response`. If the `status` field of the
-`HttpApiProblem` is `None` `500 - Internal Server Error` is the default.
-
-`From<HttpApiProblem` for `rocket::Response` will also be there. It simply
-calls `to_rocket_response`.
-
-Additionally there will be a function `into_rocket_response` which converts
-anything into a `rocket::Response` that can be converted into a
-`HttpApiProblem`.
-
-
 ## Recent changes
 
-* 0.12.0 Added experimental APIError type
+* 0.13.0 
+    * Temporarely disable rocket
+    * update actix to 1.0
+    * do not support `iron` any longer
+* 0.12.0 Added experimental API Error type
 * 0.11.0 Added `actix_web` support
 * 0.10.0 Use `http::StatusCode` **Breaking change**
 
