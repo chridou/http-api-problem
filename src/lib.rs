@@ -117,13 +117,16 @@ extern crate hyper;
 #[cfg(feature = "with_rocket")]
 extern crate rocket;
 
+use std::error::Error as StdError;
+use std::fmt;
+
+use serde::{de::DeserializeOwned, Serialize};
+use std::collections::HashMap;
+
 #[cfg(feature = "with_api_error")]
 mod api_error;
 #[cfg(feature = "with_api_error")]
 pub use api_error::*;
-
-use serde::{de::DeserializeOwned, Serialize};
-use std::collections::HashMap;
 
 pub use http::{HttpTryFrom, StatusCode};
 
@@ -168,6 +171,7 @@ pub struct HttpApiProblem {
     /// see [RFC7231, Section 3.4](https://tools.ietf.org/html/rfc7231#section-3.4).
     ///
     /// This is the only mandatory field.
+    #[serde(default)]
     pub title: String,
     /// A human-readable explanation specific to this
     /// occurrence of the problem.
@@ -513,6 +517,30 @@ impl HttpApiProblem {
             )
             .body(json);
         response
+    }
+}
+
+impl fmt::Display for HttpApiProblem {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Some(status) = self.status {
+            write!(f, "{}", status)?;
+        } else {
+            write!(f, "<no status>")?;
+        }
+
+        if let Some(ref detail) = self.detail {
+            write!(f, " - {}", detail)?;
+        } else {
+            write!(f, " - {}", self.title)?;
+        }
+
+        Ok(())
+    }
+}
+
+impl StdError for HttpApiProblem {
+    fn cause(&self) -> Option<&dyn StdError> {
+        None
     }
 }
 

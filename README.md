@@ -98,6 +98,9 @@ anything into a `hyper::Response` that can be converted into a
 
 ## Recent changes
 
+* 0.13.1 
+    * Impl `std::error::Error` for HttpApiProblem
+
 * 0.13.0 
     * Temporarely disable rocket
     * update actix to 1.0
