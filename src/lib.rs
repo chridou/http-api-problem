@@ -131,7 +131,7 @@ pub use api_error::*;
 pub use http::StatusCode;
 
 /// The recommended media type when serialized to JSON
-pub static PROBLEM_JSON_MEDIA_TYPE: &'static str = "application/problem+json";
+pub static PROBLEM_JSON_MEDIA_TYPE: &str = "application/problem+json";
 
 /// Description of a problem that can be returned by an HTTP API
 /// based on [RFC7807](https://tools.ietf.org/html/rfc7807)
@@ -235,7 +235,7 @@ impl HttpApiProblem {
         let status = status.into();
         HttpApiProblem {
             type_url: Some(format!("https://httpstatuses.com/{}", status.as_u16())),
-            status: Some(status.into()),
+            status: Some(status),
             title: status
                 .canonical_reason()
                 .unwrap_or("<unknown status code>")
@@ -265,7 +265,7 @@ impl HttpApiProblem {
         let status = status.into();
         HttpApiProblem {
             type_url: None,
-            status: Some(status.into()),
+            status: Some(status),
             title: status
                 .canonical_reason()
                 .unwrap_or("<unknown status code>")
@@ -315,7 +315,7 @@ impl HttpApiProblem {
     pub fn set_status<T: Into<StatusCode>>(self, status: T) -> HttpApiProblem {
         let status = status.into();
         let mut s = self;
-        s.status = Some(status.into());
+        s.status = Some(status);
         s
     }
 
