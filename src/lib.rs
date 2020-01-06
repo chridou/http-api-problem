@@ -128,7 +128,7 @@ mod api_error;
 #[cfg(feature = "with_api_error")]
 pub use api_error::*;
 
-pub use http::{HttpTryFrom, StatusCode};
+pub use http::StatusCode;
 
 /// The recommended media type when serialized to JSON
 pub static PROBLEM_JSON_MEDIA_TYPE: &'static str = "application/problem+json";
@@ -622,7 +622,8 @@ impl<'r> ::rocket::response::Responder<'r> for HttpApiProblem {
 }
 
 mod custom_http_status_serialization {
-    use http::{HttpTryFrom, StatusCode};
+    use std::convert::TryFrom;
+    use http::StatusCode;
     use serde::{Deserialize, Deserializer, Serializer};
 
     pub fn serialize<S>(date: &Option<StatusCode>, s: S) -> Result<S::Ok, S::Error>
@@ -642,7 +643,7 @@ mod custom_http_status_serialization {
         let s: Option<u16> = Option::deserialize(deserializer)?;
         if let Some(numeric_status_code) = s {
             // If the status code numeral is invalid we somply have none...
-            let status_code = HttpTryFrom::try_from(numeric_status_code).ok();
+            let status_code = StatusCode::try_from(numeric_status_code).ok();
             return Ok(status_code);
         }
 
