@@ -1,6 +1,6 @@
 [package]
 name = "http-api-problem"
-version = "0.13.1"
+version = "0.14.0"
 authors = ["Christian Douven <chridou@users.noreply.github.com>"]
 description = "A library to create HTTP error response content for APIs based on RFC 7807"
 repository = "https://github.com/chridou/http-api-problem"
@@ -15,11 +15,11 @@ edition = "2018"
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0" }
-http = { version = "0.1" }
-hyper = { version = "0.12", optional = true }
+http = { version = "0.2" }
+hyper = { version = "0.13", optional = true }
 #rocket = { version = "0.4", optional = true }
-actix-web = { version = "1.0", optional = true }
-actix = { version = "0.8", optional = true }
+actix-web = { version = "2.0", optional = true }
+actix = { version = "0.9", optional = true }
 failure = { version = "0.1", optional = true }
 
 [features]
