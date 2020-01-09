@@ -621,6 +621,9 @@ impl<'r> ::rocket::response::Responder<'r> for HttpApiProblem {
     }
 }
 
+#[cfg(feature = "with_warp")]
+impl warp::reject::Reject for HttpApiProblem {}
+
 mod custom_http_status_serialization {
     use std::convert::TryFrom;
     use http::StatusCode;
