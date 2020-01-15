@@ -1,0 +1,34 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        features: ["--no-default-features", "--all-features", ""]
+        rust: [
+          1.39.0, # MSRV
+          nightly # it is good practise to test libraries against nightly to catch regressions in the compiler early
+        ]
+      fail-fast: false # don't want to kill the whole CI if nightly fails
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v1
+
+      - name: Install rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.rust }}
+          override: true
+
+      - name: Cache target directory
+        uses: actions/cache@v1
+        with:
+          path: target
+          key: target-directory-${{ matrix.rust }}-${{ matrix.features }}-${{ hashFiles('Cargo.toml') }}
+
+      - run: cargo build ${{ matrix.features }}
+      - run: cargo test ${{ matrix.features }}
