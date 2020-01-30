@@ -1,13 +1,8 @@
 //! An error that should be returned from an Http API handler
 //!
-//! # Purpose
-//!
 //! # Things to know
 //!
-//! There are multiple conversions in here:
-//!
-//! * `ApiError` can be converted to a `HttpApiProblem`
-//! * `ApiError` can be converted to a `hyper::Response` containing
+//! `ApiError` can be converted to a `HttpApiProblem`
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fmt;
@@ -257,7 +252,6 @@ impl fmt::Display for ApiError {
         }
     }
 }
-
 
 impl From<StatusCode> for ApiError {
     fn from(s: StatusCode) -> Self {

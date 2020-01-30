@@ -3,30 +3,21 @@
 [![crates.io](https://img.shields.io/crates/v/http-api-problem.svg)](https://crates.io/crates/http-api-problem)
 [![docs.rs](https://docs.rs/http-api-problem/badge.svg)](https://docs.rs/http-api-problem)
 [![downloads](https://img.shields.io/crates/d/http-api-problem.svg)](https://crates.io/crates/http-api-problem)
-[![Build Status](https://travis-ci.org/chridou/http-api-problem.svg?branch=master)](https://travis-ci.org/chridou/http-api-problem)
+![CI](https://github.com/chridou/http-api-problem/workflows/CI/badge.svg)
 [![license-mit](http://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/chridou/http-api-problem/blob/master/LICENSE-MIT)
 [![license-apache](http://img.shields.io/badge/license-APACHE-blue.svg)](https://github.com/chridou/http-api-problem/blob/master/LICENSE-APACHE)
 
 A library to create HTTP response content for APIs based on
 [RFC7807](https://tools.ietf.org/html/rfc7807).
 
-** Breaking changes! This crate now uses `http::StatusCode` instead of the own custom one **
-
 ## Usage
 
 Get the latest version for your `Cargo.toml` from
 [crates.io](https://crates.io/crates/http-api-problem).
 
-Add this to your crate root:
+## Serde
 
-```rust
-extern crate http_api_problem;
-```
-
- ## serde
-
-`HttpApiProblem` implements `Serialize` and `Deserialize` for
-`HttpApiProblem`.
+`HttpApiProblem` implements `Serialize` and `Deserialize`.
 
 ## Examples
 
@@ -62,42 +53,29 @@ assert_eq!(Some("/on/1234/do/something".to_string()), p.instance);
 
 ## Features
 
+### Web Frameworks
 
-### with_iron
+There are multiple features to integrate with web frameworks:
 
-There is a conversion between `iron`s StatusCode and `HttpStatusCode` back
-and forth.
+* `with_warp`
+* `with_hyper`
+* `with_warp`
 
-The `HttpApiProblem` provides a method `to_iron_response` which constructs
-an iron `Response`. If the `status` field of the `HttpApiProblem` is `None`
-`500 - Internal Server Error` is the default.
+These mainly convert the `HttpApiProblem` to response types of
+the frameworks and implement traits to integrate with the frameworks
+error handling
 
-`From<HttpApiProblem` for `iron::response::Response` will also be there. It
-simply calls `to_iron_response`.
+### ApiError
 
-Additionally there will be a function `into_iron_response` which converts
-anything into an `iron::response::Response` that can be converted into a
-`HttpApiProblem`.
-
-### with_hyper
-
-There is a conversion between `hypers`s StatusCode and `HttpStatusCode`
-back and forth.
-
-The `HttpApiProblem` provides a method `to_hyper_response` which constructs
-a hyper `Response`. If the `status` field of the `HttpApiProblem` is `None`
-`500 - Internal Server Error` is the default.
-
-`From<HttpApiProblem` for `hyper::Response` will also be there. It simply
-calls `to_hyper_response`.
-
-Additionally there will be a function `into_iron_response` which converts
-anything into a `hyper::Response` that can be converted into a
-`HttpApiProblem`.
+The feature `with_api_error` enables a structure which can be
+return from "api handlers" that generate responses and can be 
+converted into an `HttpApiProblem`.
 
 
 ## Recent changes
 
+* 0.15.0
+    * Warp support added
 * 0.13.1 
     * Impl `std::error::Error` for HttpApiProblem
 
