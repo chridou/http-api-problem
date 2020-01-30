@@ -63,42 +63,6 @@
 //! ## Features
 //!
 //!
-//! ### with_iron
-//!
-//! There is a conversion between `iron`s StatusCode and `StatusCode` back
-//! and forth.
-//!
-//! The `HttpApiProblem` provides a method `to_iron_response` which constructs
-//! an iron `Response`. If the `status` field of the `HttpApiProblem` is `None`
-//! `500 - Internal Server Error` is the default.
-//!
-//! `From<HttpApiProblem` for `iron::response::Response` will also be there. It
-//! simply calls `to_iron_response`.
-//!
-//! Additionally there will be a function `into_iron_response` which converts
-//! anything into an `iron::response::Response` that can be converted into a
-//! `HttpApiProblem`.
-//!
-//! ### with_hyper
-//!
-//! There is a conversion between `hypers`s StatusCode and `StatusCode`
-//! back and forth.
-//!
-//! The `HttpApiProblem` provides a method `to_hyper_response` which constructs
-//! a hyper `Response`. If the `status` field of the `HttpApiProblem` is `None`
-//! `500 - Internal Server Error` is the default.
-//!
-//! `From<HttpApiProblem` for `hyper::Response` will also be there. It simply
-//! calls `to_hyper_response`.
-//!
-//! Additionally there will be a function `into_iron_response` which converts
-//! anything into a `hyper::Response` that can be converted into a
-//! `HttpApiProblem`.
-//!
-//! ### with_reqwest
-//!
-//! There is a conversion between `reqwest`s StatusCode and `StatusCode`
-//! back and forth.
 //!
 //! ## License
 //!
@@ -625,9 +589,9 @@ impl<'r> ::rocket::response::Responder<'r> for HttpApiProblem {
 impl warp::reject::Reject for HttpApiProblem {}
 
 mod custom_http_status_serialization {
-    use std::convert::TryFrom;
     use http::StatusCode;
     use serde::{Deserialize, Deserializer, Serializer};
+    use std::convert::TryFrom;
 
     pub fn serialize<S>(date: &Option<StatusCode>, s: S) -> Result<S::Ok, S::Error>
     where
