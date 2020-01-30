@@ -333,3 +333,6 @@ impl actix_web::error::ResponseError for ApiError {
         response
     }
 }
+
+#[cfg(feature = "with_warp")]
+impl warp::reject::Reject for ApiError {}
