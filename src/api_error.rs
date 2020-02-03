@@ -318,13 +318,12 @@ impl actix_web::error::ResponseError for ApiError {
         let actix_status = actix_web::http::StatusCode::from_u16(self.status.as_u16())
             .unwrap_or(actix_web::http::StatusCode::INTERNAL_SERVER_ERROR);
 
-        let response = actix_web::HttpResponse::build(actix_status)
+        actix_web::HttpResponse::build(actix_status)
             .header(
                 actix_web::http::header::CONTENT_TYPE,
                 PROBLEM_JSON_MEDIA_TYPE,
             )
-            .body(json);
-        response
+            .body(json)
     }
 }
 

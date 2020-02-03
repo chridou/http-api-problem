@@ -3,7 +3,7 @@
 //! [![crates.io](https://img.shields.io/crates/v/http-api-problem.svg)](https://crates.io/crates/http-api-problem)
 //! [![docs.rs](https://docs.rs/http-api-problem/badge.svg)](https://docs.rs/http-api-problem)
 //! [![downloads](https://img.shields.io/crates/d/http-api-problem.svg)](https://crates.io/crates/http-api-problem)
-//! [![Build Status](https://travis-ci.org/chridou/http-api-problem.svg?branch=master)](https://travis-ci.org/chridou/http-api-problem)
+//! ![CI](https://github.com/chridou/http-api-problem/workflows/CI/badge.svg)
 //! [![license-mit](http://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/chridou/http-api-problem/blob/master/LICENSE-MIT)
 //! [![license-apache](http://img.shields.io/badge/license-APACHE-blue.svg)](https://github.com/chridou/http-api-problem/blob/master/LICENSE-APACHE)
 //!
@@ -70,11 +70,6 @@
 //! license and the Apache License (Version 2.0).
 //!
 //! Copyright (c) 2017 Christian Douven.
-#[macro_use]
-extern crate serde;
-extern crate http;
-extern crate serde_json;
-
 #[cfg(feature = "with_hyper")]
 extern crate hyper;
 
@@ -84,7 +79,7 @@ extern crate rocket;
 use std::error::Error as StdError;
 use std::fmt;
 
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[cfg(feature = "with_api_error")]
@@ -474,13 +469,12 @@ impl HttpApiProblem {
 
         let json = self.json_bytes();
 
-        let response = actix_web::HttpResponse::build(actix_status)
+        actix_web::HttpResponse::build(actix_status)
             .header(
                 actix_web::http::header::CONTENT_TYPE,
                 PROBLEM_JSON_MEDIA_TYPE,
             )
-            .body(json);
-        response
+            .body(json)
     }
 }
 
@@ -503,7 +497,7 @@ impl fmt::Display for HttpApiProblem {
 }
 
 impl StdError for HttpApiProblem {
-    fn cause(&self) -> Option<&dyn StdError> {
+    fn source(&self) -> Option<&(dyn StdError + 'static)> {
         None
     }
 }
@@ -609,7 +603,7 @@ mod custom_http_status_serialization {
     {
         let s: Option<u16> = Option::deserialize(deserializer)?;
         if let Some(numeric_status_code) = s {
-            // If the status code numeral is invalid we somply have none...
+            // If the status code numeral is invalid we simply have none...
             let status_code = StatusCode::try_from(numeric_status_code).ok();
             return Ok(status_code);
         }
