@@ -76,7 +76,11 @@ extern crate hyper;
 #[cfg(feature = "with_rocket")]
 extern crate rocket;
 
+#[cfg(feature = "failure")]
+use failure::*;
+#[cfg(not(feature = "failure"))]
 use std::error::Error as StdError;
+
 use std::fmt;
 
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -496,9 +500,25 @@ impl fmt::Display for HttpApiProblem {
     }
 }
 
+#[cfg(not(feature = "failure"))]
 impl StdError for HttpApiProblem {
     fn source(&self) -> Option<&(dyn StdError + 'static)> {
         None
+    }
+}
+
+#[cfg(feature = "failure")]
+impl Fail for HttpApiProblem {
+    fn cause(&self) -> Option<&dyn Fail> {
+        None
+    }
+
+    fn backtrace(&self) -> Option<&Backtrace> {
+        None
+    }
+
+    fn name(&self) -> Option<&str> {
+        Some("http_api_problem::HttpApiProblem")
     }
 }
 

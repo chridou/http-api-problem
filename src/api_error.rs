@@ -8,7 +8,12 @@ use std::collections::HashMap;
 use std::fmt;
 use std::io;
 
+#[cfg(not(feature = "failure"))]
+use std::error::Error as StdError;
+
+#[cfg(feature = "failure")]
 use failure::*;
+
 use serde::Serialize;
 use serde_json::Value;
 
@@ -229,6 +234,14 @@ impl ApiError {
     }
 }
 
+#[cfg(not(feature = "failure"))]
+impl StdError for ApiError {
+    fn source(&self) -> Option<&(dyn StdError + 'static)> {
+        self.cause.as_ref().map(|e| *&e)
+    }
+}
+
+#[cfg(feature = "failure")]
 impl Fail for ApiError {
     fn cause(&self) -> Option<&dyn Fail> {
         self.cause.as_ref().map(|boxed| &**boxed)
