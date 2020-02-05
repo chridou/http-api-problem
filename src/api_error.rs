@@ -219,7 +219,7 @@ impl ApiError {
         }
     }
 
-    pub fn set_cause<E: StdError>(&mut self, cause: E) {
+    pub fn set_cause<E: StdError + 'static>(&mut self, cause: E) {
         self.cause = Some(Box::new(cause))
     }
 
@@ -303,7 +303,7 @@ impl ApiError {
 #[cfg(not(feature = "with-failure"))]
 impl StdError for ApiError {
     fn source(&self) -> Option<&(dyn StdError + 'static)> {
-        self.cause.as_ref().map(|e| *&e)
+        self.cause.as_ref().map(|e| &**e)
     }
 }
 
