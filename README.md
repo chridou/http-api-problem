@@ -57,9 +57,9 @@ assert_eq!(Some("/on/1234/do/something".to_string()), p.instance);
 
 There are multiple features to integrate with web frameworks:
 
-* `with_warp`
-* `with_hyper`
-* `with_warp`
+* `with-warp`
+* `with-hyper`
+* `with-actix-web`
 
 These mainly convert the `HttpApiProblem` to response types of
 the frameworks and implement traits to integrate with the frameworks
@@ -67,25 +67,14 @@ error handling
 
 ### ApiError
 
-The feature `with_api_error` enables a structure which can be
+The feature `with-api-error` enables a structure which can be
 return from "api handlers" that generate responses and can be 
 converted into an `HttpApiProblem`.
 
+### Failure Crate
 
-## Recent changes
-
-* 0.15.0
-    * Warp support added
-* 0.13.1 
-    * Impl `std::error::Error` for HttpApiProblem
-
-* 0.13.0 
-    * Temporarely disable rocket
-    * update actix to 1.0
-    * do not support `iron` any longer
-* 0.12.0 Added experimental API Error type
-* 0.11.0 Added `actix_web` support
-* 0.10.0 Use `http::StatusCode` **Breaking change**
+The feature `with-failure` will add implementations of `failure::Fail`
+for `HttpApiProblem` and `ApiError` instead of `std::error::Error`.
 
 ## Thank you
 A big "thank you" for contributions and inspirations goes to the

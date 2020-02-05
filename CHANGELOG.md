@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- A changelog
 - `ApiError` implements `std::error::Error` if `failure` feature is not activated.
 
 ### CHANGED
@@ -14,3 +15,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Feature `with_warp` became `with-warp`
 - Feature `with_actix_web` became `with-actix-web`
 - Feature `with_hyper` became `with-hyper`
+- Updated `README.md`
