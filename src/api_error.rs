@@ -52,8 +52,9 @@ pub struct ApiError {
     cause: Option<Box<dyn Fail>>,
 
     #[cfg(not(feature = "with-failure"))]
-    cause: Option<Box<dyn Error + 'static>>,
+    cause: Option<Box<dyn StdError + 'static>>,
 
+    #[cfg(feature = "with-failure")]
     backtrace: Backtrace,
 }
 
@@ -69,6 +70,7 @@ impl ApiError {
             fields: HashMap::new(),
             title: None,
             cause: None,
+            #[cfg(feature = "with-failure")]
             backtrace: Backtrace::new(),
         }
     }
@@ -85,39 +87,7 @@ impl ApiError {
             fields: HashMap::new(),
             title: None,
             cause: None,
-            backtrace: Backtrace::new(),
-        }
-    }
-
-    pub fn with_cause<S, F>(status: S, err: F) -> Self
-    where
-        S: Into<StatusCode>,
-        F: Fail,
-    {
-        Self {
-            status: status.into(),
-            message: None,
-            type_url: None,
-            fields: HashMap::new(),
-            title: None,
-            cause: Some(Box::new(err)),
-            backtrace: Backtrace::new(),
-        }
-    }
-
-    pub fn with_message_and_cause<S, M, F>(status: S, message: M, err: F) -> Self
-    where
-        S: Into<StatusCode>,
-        M: Into<String>,
-        F: Fail,
-    {
-        Self {
-            status: status.into(),
-            message: Some(message.into()),
-            type_url: None,
-            fields: HashMap::new(),
-            title: None,
-            cause: Some(Box::new(err)),
+            #[cfg(feature = "with-failure")]
             backtrace: Backtrace::new(),
         }
     }
@@ -132,10 +102,6 @@ impl ApiError {
         }
 
         Cow::Borrowed(self.status.as_str())
-    }
-
-    pub fn set_cause<F: Fail>(&mut self, cause: F) {
-        self.cause = Some(Box::new(cause))
     }
 
     /// Adds a serializable field. If the serialization fails nothing will be
@@ -235,6 +201,84 @@ impl ApiError {
     pub fn into_actix_web_response(self) -> actix_web::HttpResponse {
         let problem = self.into_http_api_problem();
         problem.into()
+    }
+}
+
+#[cfg(not(feature = "with-failure"))]
+impl ApiError {
+    pub fn with_cause<S, E>(status: S, err: E) -> Self
+    where
+        S: Into<StatusCode>,
+        E: StdError,
+    {
+        Self {
+            status: status.into(),
+            message: None,
+            type_url: None,
+            fields: HashMap::new(),
+            title: None,
+            cause: Some(Box::new(err)),
+        }
+    }
+
+    pub fn with_message_and_cause<S, M, E>(status: S, message: M, err: E) -> Self
+    where
+        S: Into<StatusCode>,
+        M: Into<String>,
+        E: StdError,
+    {
+        Self {
+            status: status.into(),
+            message: Some(message.into()),
+            type_url: None,
+            fields: HashMap::new(),
+            title: None,
+            cause: Some(Box::new(err)),
+        }
+    }
+
+    pub fn set_cause<E: StdError>(&mut self, cause: E) {
+        self.cause = Some(Box::new(cause))
+    }
+}
+
+#[cfg(feature = "with-failure")]
+impl ApiError {
+    pub fn with_cause<S, F>(status: S, err: F) -> Self
+    where
+        S: Into<StatusCode>,
+        F: Fail,
+    {
+        Self {
+            status: status.into(),
+            message: None,
+            type_url: None,
+            fields: HashMap::new(),
+            title: None,
+            cause: Some(Box::new(err)),
+            backtrace: Backtrace::new(),
+        }
+    }
+
+    pub fn with_message_and_cause<S, M, F>(status: S, message: M, err: F) -> Self
+    where
+        S: Into<StatusCode>,
+        M: Into<String>,
+        F: Fail,
+    {
+        Self {
+            status: status.into(),
+            message: Some(message.into()),
+            type_url: None,
+            fields: HashMap::new(),
+            title: None,
+            cause: Some(Box::new(err)),
+            backtrace: Backtrace::new(),
+        }
+    }
+
+    pub fn set_cause<F: Fail>(&mut self, cause: F) {
+        self.cause = Some(Box::new(cause))
     }
 }
 
