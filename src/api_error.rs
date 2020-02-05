@@ -113,24 +113,6 @@ impl ApiError {
         self.try_add_field(name, value).is_ok()
     }
 
-    /// Adds a serializable field. If the serialization fails nothing will be
-    /// added. This fails if a failure occurred while adding the field.
-    ///
-    /// An already present field with the same name will be replaced.
-    pub fn try_add_field<T: Into<String>, V: Serialize>(
-        &mut self,
-        name: T,
-        value: V,
-    ) -> Result<(), Error> {
-        match serde_json::to_value(value) {
-            Ok(value) => {
-                self.fields.insert(name.into(), value);
-                Ok(())
-            }
-            Err(err) => Err(err.into()),
-        }
-    }
-
     pub fn to_http_api_problem(&self) -> HttpApiProblem {
         let mut problem = HttpApiProblem::with_title_and_type_from_status(self.status);
 
@@ -209,7 +191,7 @@ impl ApiError {
     pub fn with_cause<S, E>(status: S, err: E) -> Self
     where
         S: Into<StatusCode>,
-        E: StdError,
+        E: StdError + 'static,
     {
         Self {
             status: status.into(),
@@ -225,7 +207,7 @@ impl ApiError {
     where
         S: Into<StatusCode>,
         M: Into<String>,
-        E: StdError,
+        E: StdError + 'static,
     {
         Self {
             status: status.into(),
@@ -239,6 +221,24 @@ impl ApiError {
 
     pub fn set_cause<E: StdError>(&mut self, cause: E) {
         self.cause = Some(Box::new(cause))
+    }
+
+    /// Adds a serializable field. If the serialization fails nothing will be
+    /// added. This fails if a failure occurred while adding the field.
+    ///
+    /// An already present field with the same name will be replaced.
+    pub fn try_add_field<T: Into<String>, V: Serialize>(
+        &mut self,
+        name: T,
+        value: V,
+    ) -> Result<(), Box<dyn StdError + 'static>> {
+        match serde_json::to_value(value) {
+            Ok(value) => {
+                self.fields.insert(name.into(), value);
+                Ok(())
+            }
+            Err(err) => Err(Box::new(err)),
+        }
     }
 }
 
@@ -279,6 +279,24 @@ impl ApiError {
 
     pub fn set_cause<F: Fail>(&mut self, cause: F) {
         self.cause = Some(Box::new(cause))
+    }
+
+    /// Adds a serializable field. If the serialization fails nothing will be
+    /// added. This fails if a failure occurred while adding the field.
+    ///
+    /// An already present field with the same name will be replaced.
+    pub fn try_add_field<T: Into<String>, V: Serialize>(
+        &mut self,
+        name: T,
+        value: V,
+    ) -> Result<(), Error> {
+        match serde_json::to_value(value) {
+            Ok(value) => {
+                self.fields.insert(name.into(), value);
+                Ok(())
+            }
+            Err(err) => Err(err.into()),
+        }
     }
 }
 
