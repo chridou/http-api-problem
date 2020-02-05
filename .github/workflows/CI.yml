@@ -6,7 +6,7 @@ jobs:
   build:
     strategy:
       matrix:
-        features: ["--no-default-features", "--all-features", "--features failure"]
+        features: ["--no-default-features", "--all-features", "--features with-failure" "--features with-api-error"]
         rust: [
           1.39.0, # MSRV
           nightly # it is good practise to test libraries against nightly to catch regressions in the compiler early
