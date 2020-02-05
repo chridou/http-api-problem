@@ -60,25 +60,18 @@
 //! assert_eq!(Some("/on/1234/do/something".to_string()), p.instance);
 //! ```
 //!
-//! ## Features
-//!
-//!
-//!
 //! ## License
 //!
 //! `http-api-problem` is primarily distributed under the terms of both the MIT
 //! license and the Apache License (Version 2.0).
 //!
 //! Copyright (c) 2017 Christian Douven.
-#[cfg(feature = "with_hyper")]
+#[cfg(feature = "with-hyper")]
 extern crate hyper;
 
-#[cfg(feature = "with_rocket")]
-extern crate rocket;
-
-#[cfg(feature = "failure")]
+#[cfg(feature = "with-failure")]
 use failure::*;
-#[cfg(not(feature = "failure"))]
+#[cfg(not(feature = "with-failure"))]
 use std::error::Error as StdError;
 
 use std::fmt;
@@ -86,9 +79,9 @@ use std::fmt;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[cfg(feature = "with_api_error")]
+#[cfg(feature = "with-api-error")]
 mod api_error;
-#[cfg(feature = "with_api_error")]
+#[cfg(feature = "with-api-error")]
 pub use api_error::*;
 
 pub use http::StatusCode;
@@ -415,7 +408,7 @@ impl HttpApiProblem {
     ///
     /// If status is `None` `500 - Internal Server Error` is the
     /// default.
-    #[cfg(feature = "with_hyper")]
+    #[cfg(feature = "with-hyper")]
     pub fn to_hyper_response(self) -> hyper::Response<hyper::Body> {
         use hyper::header::{HeaderValue, CONTENT_LENGTH, CONTENT_TYPE};
         use hyper::*;
@@ -438,34 +431,12 @@ impl HttpApiProblem {
         Response::from_parts(parts, body)
     }
 
-    /// Creates a `rocket` response.
-    ///
-    /// If status is `None` `500 - Internal Server Error` is the
-    /// default.
-    #[cfg(feature = "with_rocket")]
-    pub fn to_rocket_response(&self) -> rocket::Response<'static> {
-        use rocket::http::ContentType;
-        use rocket::http::Status;
-        use rocket::Response;
-        use std::io::Cursor;
-
-        let content_type: ContentType = PROBLEM_JSON_MEDIA_TYPE.parse().unwrap();
-        let json = self.json_bytes();
-        let response = Response::build()
-            .status(Status::raw(self.status_code_or_internal_server_error()))
-            .sized_body(Cursor::new(json))
-            .header(content_type)
-            .finalize();
-
-        response
-    }
-
-    /// Creates an `anctix` response.
+    /// Creates an `actix` response.
     ///
     /// If status is `None` or not convertible
     /// to an actix status `500 - Internal Server Error` is the
     /// default.
-    #[cfg(feature = "with_actix_web")]
+    #[cfg(feature = "with-actix-web")]
     pub fn to_actix_response(&self) -> actix_web::HttpResponse {
         let effective_status = self.status_or_internal_server_error();
         let actix_status = actix_web::http::StatusCode::from_u16(effective_status.as_u16())
@@ -500,14 +471,14 @@ impl fmt::Display for HttpApiProblem {
     }
 }
 
-#[cfg(not(feature = "failure"))]
+#[cfg(not(feature = "with-failure"))]
 impl StdError for HttpApiProblem {
     fn source(&self) -> Option<&(dyn StdError + 'static)> {
         None
     }
 }
 
-#[cfg(feature = "failure")]
+#[cfg(feature = "with-failure")]
 impl Fail for HttpApiProblem {
     fn cause(&self) -> Option<&dyn Fail> {
         None
@@ -528,7 +499,7 @@ impl From<StatusCode> for HttpApiProblem {
     }
 }
 
-#[cfg(feature = "with_iron")]
+#[cfg(feature = "with-iron")]
 impl From<HttpApiProblem> for ::iron::response::Response {
     fn from(problem: HttpApiProblem) -> ::iron::response::Response {
         problem.to_iron_response()
@@ -540,13 +511,13 @@ impl From<HttpApiProblem> for ::iron::response::Response {
 ///
 /// If status is `None` `500 - Internal Server Error` is the
 /// default.
-#[cfg(feature = "with_hyper")]
+#[cfg(feature = "with-hyper")]
 pub fn into_hyper_response<T: Into<HttpApiProblem>>(what: T) -> hyper::Response<hyper::Body> {
     let problem: HttpApiProblem = what.into();
     problem.to_hyper_response()
 }
 
-#[cfg(feature = "with_hyper")]
+#[cfg(feature = "with-hyper")]
 impl From<HttpApiProblem> for hyper::Response<hyper::Body> {
     fn from(problem: HttpApiProblem) -> hyper::Response<hyper::Body> {
         problem.to_hyper_response()
@@ -558,48 +529,20 @@ impl From<HttpApiProblem> for hyper::Response<hyper::Body> {
 ///
 /// If status is `None` `500 - Internal Server Error` is the
 /// default.
-#[cfg(feature = "with_actix_web")]
+#[cfg(feature = "with-actix-web")]
 pub fn into_actix_response<T: Into<HttpApiProblem>>(what: T) -> actix_web::HttpResponse {
     let problem: HttpApiProblem = what.into();
     problem.to_actix_response()
 }
 
-#[cfg(feature = "with_actix_web")]
+#[cfg(feature = "with-actix-web")]
 impl From<HttpApiProblem> for actix_web::HttpResponse {
     fn from(problem: HttpApiProblem) -> actix_web::HttpResponse {
         problem.to_actix_response()
     }
 }
 
-/// Creates an `rocket::Response` from something that can become an
-/// `HttpApiProblem`.
-///
-/// If status is `None` `500 - Internal Server Error` is the
-/// default.
-#[cfg(feature = "with_rocket")]
-pub fn into_rocket_response<T: Into<HttpApiProblem>>(what: T) -> ::rocket::Response<'static> {
-    let problem: HttpApiProblem = what.into();
-    problem.to_rocket_response()
-}
-
-#[cfg(feature = "with_rocket")]
-impl From<HttpApiProblem> for ::rocket::Response<'static> {
-    fn from(problem: HttpApiProblem) -> ::rocket::Response<'static> {
-        problem.to_rocket_response()
-    }
-}
-
-#[cfg(feature = "with_rocket")]
-impl<'r> ::rocket::response::Responder<'r> for HttpApiProblem {
-    fn respond_to(
-        self,
-        _request: &::rocket::Request,
-    ) -> Result<::rocket::Response<'r>, ::rocket::http::Status> {
-        Ok(self.into())
-    }
-}
-
-#[cfg(feature = "with_warp")]
+#[cfg(feature = "with-warp")]
 impl warp::reject::Reject for HttpApiProblem {}
 
 mod custom_http_status_serialization {

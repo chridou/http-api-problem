@@ -24,8 +24,8 @@ warp = { version = "0.2", optional = true, default-features = false }
 
 [features]
 default = []
-with_actix_web = ["actix-web", "actix"]
-with_hyper = ["hyper"]
-with_warp = ["warp"]
-with_failure = ["failure"]
-api_error = []
+with-actix-web = ["actix-web", "actix"]
+with-hyper = ["hyper"]
+with-warp = ["warp"]
+with-failure = ["failure"]
+with-api-error = []

@@ -8,10 +8,10 @@ use std::collections::HashMap;
 use std::fmt;
 use std::io;
 
-#[cfg(not(feature = "failure"))]
+#[cfg(not(feature = "with-failure"))]
 use std::error::Error as StdError;
 
-#[cfg(feature = "failure")]
+#[cfg(feature = "with-failure")]
 use failure::*;
 
 use serde::Serialize;
@@ -48,7 +48,11 @@ pub struct ApiError {
     /// for consumers.
     pub title: Option<String>,
 
+    #[cfg(feature = "with-failure")]
     cause: Option<Box<dyn Fail>>,
+
+    #[cfg(not(feature = "with-failure"))]
+    cause: Option<Box<dyn Error + 'static>>,
 
     backtrace: Backtrace,
 }
@@ -221,30 +225,30 @@ impl ApiError {
         None
     }
 
-    #[cfg(feature = "with_hyper")]
+    #[cfg(feature = "with-hyper")]
     pub fn into_hyper_response(self) -> hyper::Response<hyper::Body> {
         let problem = self.into_http_api_problem();
         problem.to_hyper_response()
     }
 
-    #[cfg(feature = "with_actix_web")]
+    #[cfg(feature = "with-actix-web")]
     pub fn into_actix_web_response(self) -> actix_web::HttpResponse {
         let problem = self.into_http_api_problem();
         problem.into()
     }
 }
 
-#[cfg(not(feature = "failure"))]
+#[cfg(not(feature = "with-failure"))]
 impl StdError for ApiError {
     fn source(&self) -> Option<&(dyn StdError + 'static)> {
         self.cause.as_ref().map(|e| *&e)
     }
 }
 
-#[cfg(feature = "failure")]
+#[cfg(feature = "with-failure")]
 impl Fail for ApiError {
     fn cause(&self) -> Option<&dyn Fail> {
-        self.cause.as_ref().map(|boxed| &**boxed)
+        self.cause.as_ref().map(|e| &**e)
     }
 
     fn backtrace(&self) -> Option<&Backtrace> {
@@ -288,7 +292,7 @@ impl From<io::Error> for ApiError {
     }
 }
 
-#[cfg(feature = "with_hyper")]
+#[cfg(feature = "with-hyper")]
 impl From<hyper::error::Error> for ApiError {
     fn from(error: hyper::error::Error) -> Self {
         ApiError::with_message_and_cause(
@@ -299,7 +303,7 @@ impl From<hyper::error::Error> for ApiError {
     }
 }
 
-#[cfg(feature = "with_actix_web")]
+#[cfg(feature = "with-actix-web")]
 impl From<actix::prelude::MailboxError> for ApiError {
     fn from(error: actix::prelude::MailboxError) -> Self {
         ApiError::with_message_and_cause(
@@ -310,21 +314,21 @@ impl From<actix::prelude::MailboxError> for ApiError {
     }
 }
 
-#[cfg(feature = "with_hyper")]
+#[cfg(feature = "with-hyper")]
 impl From<ApiError> for hyper::Response<hyper::Body> {
     fn from(error: ApiError) -> hyper::Response<hyper::Body> {
         error.into_hyper_response()
     }
 }
 
-#[cfg(feature = "with_actix_web")]
+#[cfg(feature = "with-actix-web")]
 impl From<ApiError> for actix_web::HttpResponse {
     fn from(error: ApiError) -> Self {
         error.into_actix_web_response()
     }
 }
 
-#[cfg(feature = "with_actix_web")]
+#[cfg(feature = "with-actix-web")]
 impl actix_web::error::ResponseError for ApiError {
     fn error_response(&self) -> actix_web::HttpResponse {
         let json = self.to_http_api_problem().json_bytes();
@@ -340,5 +344,5 @@ impl actix_web::error::ResponseError for ApiError {
     }
 }
 
-#[cfg(feature = "with_warp")]
+#[cfg(feature = "with-warp")]
 impl warp::reject::Reject for ApiError {}

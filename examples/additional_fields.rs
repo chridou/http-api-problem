@@ -1,7 +1,4 @@
-extern crate http_api_problem;
-#[macro_use]
-extern crate serde;
-extern crate serde_json;
+use serde::{Deserialize, Serialize};
 
 use http_api_problem::*;
 
