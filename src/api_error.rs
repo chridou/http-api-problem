@@ -8,7 +8,12 @@ use std::collections::HashMap;
 use std::fmt;
 use std::io;
 
+#[cfg(not(feature = "with-failure"))]
+use std::error::Error as StdError;
+
+#[cfg(feature = "with-failure")]
 use failure::*;
+
 use serde::Serialize;
 use serde_json::Value;
 
@@ -43,8 +48,13 @@ pub struct ApiError {
     /// for consumers.
     pub title: Option<String>,
 
+    #[cfg(feature = "with-failure")]
     cause: Option<Box<dyn Fail>>,
 
+    #[cfg(not(feature = "with-failure"))]
+    cause: Option<Box<dyn StdError + 'static>>,
+
+    #[cfg(feature = "with-failure")]
     backtrace: Backtrace,
 }
 
@@ -60,6 +70,7 @@ impl ApiError {
             fields: HashMap::new(),
             title: None,
             cause: None,
+            #[cfg(feature = "with-failure")]
             backtrace: Backtrace::new(),
         }
     }
@@ -76,39 +87,7 @@ impl ApiError {
             fields: HashMap::new(),
             title: None,
             cause: None,
-            backtrace: Backtrace::new(),
-        }
-    }
-
-    pub fn with_cause<S, F>(status: S, err: F) -> Self
-    where
-        S: Into<StatusCode>,
-        F: Fail,
-    {
-        Self {
-            status: status.into(),
-            message: None,
-            type_url: None,
-            fields: HashMap::new(),
-            title: None,
-            cause: Some(Box::new(err)),
-            backtrace: Backtrace::new(),
-        }
-    }
-
-    pub fn with_message_and_cause<S, M, F>(status: S, message: M, err: F) -> Self
-    where
-        S: Into<StatusCode>,
-        M: Into<String>,
-        F: Fail,
-    {
-        Self {
-            status: status.into(),
-            message: Some(message.into()),
-            type_url: None,
-            fields: HashMap::new(),
-            title: None,
-            cause: Some(Box::new(err)),
+            #[cfg(feature = "with-failure")]
             backtrace: Backtrace::new(),
         }
     }
@@ -125,10 +104,6 @@ impl ApiError {
         Cow::Borrowed(self.status.as_str())
     }
 
-    pub fn set_cause<F: Fail>(&mut self, cause: F) {
-        self.cause = Some(Box::new(cause))
-    }
-
     /// Adds a serializable field. If the serialization fails nothing will be
     /// added. This method returns `true` if the field was added and `false` if
     /// the field could not be added.
@@ -136,24 +111,6 @@ impl ApiError {
     /// An already present field with the same name will be replaced.
     pub fn add_field<T: Into<String>, V: Serialize>(&mut self, name: T, value: V) -> bool {
         self.try_add_field(name, value).is_ok()
-    }
-
-    /// Adds a serializable field. If the serialization fails nothing will be
-    /// added. This fails if a failure occurred while adding the field.
-    ///
-    /// An already present field with the same name will be replaced.
-    pub fn try_add_field<T: Into<String>, V: Serialize>(
-        &mut self,
-        name: T,
-        value: V,
-    ) -> Result<(), Error> {
-        match serde_json::to_value(value) {
-            Ok(value) => {
-                self.fields.insert(name.into(), value);
-                Ok(())
-            }
-            Err(err) => Err(err.into()),
-        }
     }
 
     pub fn to_http_api_problem(&self) -> HttpApiProblem {
@@ -216,22 +173,144 @@ impl ApiError {
         None
     }
 
-    #[cfg(feature = "with_hyper")]
+    #[cfg(feature = "with-hyper")]
     pub fn into_hyper_response(self) -> hyper::Response<hyper::Body> {
         let problem = self.into_http_api_problem();
         problem.to_hyper_response()
     }
 
-    #[cfg(feature = "with_actix_web")]
+    #[cfg(feature = "with-actix-web")]
     pub fn into_actix_web_response(self) -> actix_web::HttpResponse {
         let problem = self.into_http_api_problem();
         problem.into()
     }
 }
 
+#[cfg(not(feature = "with-failure"))]
+impl ApiError {
+    pub fn with_cause<S, E>(status: S, err: E) -> Self
+    where
+        S: Into<StatusCode>,
+        E: StdError + 'static,
+    {
+        Self {
+            status: status.into(),
+            message: None,
+            type_url: None,
+            fields: HashMap::new(),
+            title: None,
+            cause: Some(Box::new(err)),
+        }
+    }
+
+    pub fn with_message_and_cause<S, M, E>(status: S, message: M, err: E) -> Self
+    where
+        S: Into<StatusCode>,
+        M: Into<String>,
+        E: StdError + 'static,
+    {
+        Self {
+            status: status.into(),
+            message: Some(message.into()),
+            type_url: None,
+            fields: HashMap::new(),
+            title: None,
+            cause: Some(Box::new(err)),
+        }
+    }
+
+    pub fn set_cause<E: StdError + 'static>(&mut self, cause: E) {
+        self.cause = Some(Box::new(cause))
+    }
+
+    /// Adds a serializable field. If the serialization fails nothing will be
+    /// added. This fails if a failure occurred while adding the field.
+    ///
+    /// An already present field with the same name will be replaced.
+    pub fn try_add_field<T: Into<String>, V: Serialize>(
+        &mut self,
+        name: T,
+        value: V,
+    ) -> Result<(), Box<dyn StdError + 'static>> {
+        match serde_json::to_value(value) {
+            Ok(value) => {
+                self.fields.insert(name.into(), value);
+                Ok(())
+            }
+            Err(err) => Err(Box::new(err)),
+        }
+    }
+}
+
+#[cfg(feature = "with-failure")]
+impl ApiError {
+    pub fn with_cause<S, F>(status: S, err: F) -> Self
+    where
+        S: Into<StatusCode>,
+        F: Fail,
+    {
+        Self {
+            status: status.into(),
+            message: None,
+            type_url: None,
+            fields: HashMap::new(),
+            title: None,
+            cause: Some(Box::new(err)),
+            backtrace: Backtrace::new(),
+        }
+    }
+
+    pub fn with_message_and_cause<S, M, F>(status: S, message: M, err: F) -> Self
+    where
+        S: Into<StatusCode>,
+        M: Into<String>,
+        F: Fail,
+    {
+        Self {
+            status: status.into(),
+            message: Some(message.into()),
+            type_url: None,
+            fields: HashMap::new(),
+            title: None,
+            cause: Some(Box::new(err)),
+            backtrace: Backtrace::new(),
+        }
+    }
+
+    pub fn set_cause<F: Fail>(&mut self, cause: F) {
+        self.cause = Some(Box::new(cause))
+    }
+
+    /// Adds a serializable field. If the serialization fails nothing will be
+    /// added. This fails if a failure occurred while adding the field.
+    ///
+    /// An already present field with the same name will be replaced.
+    pub fn try_add_field<T: Into<String>, V: Serialize>(
+        &mut self,
+        name: T,
+        value: V,
+    ) -> Result<(), Error> {
+        match serde_json::to_value(value) {
+            Ok(value) => {
+                self.fields.insert(name.into(), value);
+                Ok(())
+            }
+            Err(err) => Err(err.into()),
+        }
+    }
+}
+
+#[cfg(not(feature = "with-failure"))]
+impl StdError for ApiError {
+    fn source(&self) -> Option<&(dyn StdError + 'static)> {
+        self.cause.as_ref().map(|e| &**e)
+    }
+}
+
+#[cfg(feature = "with-failure")]
 impl Fail for ApiError {
     fn cause(&self) -> Option<&dyn Fail> {
-        self.cause.as_ref().map(|boxed| &**boxed)
+        self.cause.as_ref().map(|e| &**e)
     }
 
     fn backtrace(&self) -> Option<&Backtrace> {
@@ -275,7 +354,7 @@ impl From<io::Error> for ApiError {
     }
 }
 
-#[cfg(feature = "with_hyper")]
+#[cfg(feature = "with-hyper")]
 impl From<hyper::error::Error> for ApiError {
     fn from(error: hyper::error::Error) -> Self {
         ApiError::with_message_and_cause(
@@ -286,7 +365,7 @@ impl From<hyper::error::Error> for ApiError {
     }
 }
 
-#[cfg(feature = "with_actix_web")]
+#[cfg(feature = "with-actix-web")]
 impl From<actix::prelude::MailboxError> for ApiError {
     fn from(error: actix::prelude::MailboxError) -> Self {
         ApiError::with_message_and_cause(
@@ -297,21 +376,21 @@ impl From<actix::prelude::MailboxError> for ApiError {
     }
 }
 
-#[cfg(feature = "with_hyper")]
+#[cfg(feature = "with-hyper")]
 impl From<ApiError> for hyper::Response<hyper::Body> {
     fn from(error: ApiError) -> hyper::Response<hyper::Body> {
         error.into_hyper_response()
     }
 }
 
-#[cfg(feature = "with_actix_web")]
+#[cfg(feature = "with-actix-web")]
 impl From<ApiError> for actix_web::HttpResponse {
     fn from(error: ApiError) -> Self {
         error.into_actix_web_response()
     }
 }
 
-#[cfg(feature = "with_actix_web")]
+#[cfg(feature = "with-actix-web")]
 impl actix_web::error::ResponseError for ApiError {
     fn error_response(&self) -> actix_web::HttpResponse {
         let json = self.to_http_api_problem().json_bytes();
@@ -327,5 +406,5 @@ impl actix_web::error::ResponseError for ApiError {
     }
 }
 
-#[cfg(feature = "with_warp")]
+#[cfg(feature = "with-warp")]
 impl warp::reject::Reject for ApiError {}

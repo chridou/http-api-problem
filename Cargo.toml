@@ -23,7 +23,9 @@ failure = { version = "0.1", optional = true }
 warp = { version = "0.2", optional = true, default-features = false }
 
 [features]
-with_actix_web = ["actix-web", "actix"]
-with_hyper = ["hyper"]
-with_warp = ["warp"]
-with_api_error = ["failure"]
+default = []
+with-actix-web = ["actix-web", "actix"]
+with-hyper = ["hyper"]
+with-warp = ["warp"]
+with-failure = ["failure"]
+with-api-error = []
