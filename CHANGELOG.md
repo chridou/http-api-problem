@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A changelog
 - `ApiError` implements `std::error::Error` if `failure` feature is not activated.
 
-### CHANGED
+### Changed
 - `failure` support must be activated via feature `with-failure`
 - If `failure` feature is activated, both `HttpApiProblem` and `ApiError` implement `failure::Fail`, otherwise `std::error::Error`
 - Feature `with_warp` became `with-warp`
