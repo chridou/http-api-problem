@@ -8,11 +8,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::io;
 
-#[cfg(not(feature = "with-failure"))]
-use std::error::Error as StdError;
-
-#[cfg(feature = "with-failure")]
-use failure::*;
+use std::error::Error;
 
 use serde::Serialize;
 use serde_json::Value;
@@ -48,14 +44,7 @@ pub struct ApiError {
     /// for consumers.
     pub title: Option<String>,
 
-    #[cfg(feature = "with-failure")]
-    cause: Option<Box<dyn Fail>>,
-
-    #[cfg(not(feature = "with-failure"))]
-    cause: Option<Box<dyn StdError + 'static>>,
-
-    #[cfg(feature = "with-failure")]
-    backtrace: Backtrace,
+    cause: Option<Box<dyn Error + Send + Sync + 'static>>,
 }
 
 impl ApiError {
@@ -70,8 +59,6 @@ impl ApiError {
             fields: HashMap::new(),
             title: None,
             cause: None,
-            #[cfg(feature = "with-failure")]
-            backtrace: Backtrace::new(),
         }
     }
 
@@ -87,8 +74,6 @@ impl ApiError {
             fields: HashMap::new(),
             title: None,
             cause: None,
-            #[cfg(feature = "with-failure")]
-            backtrace: Backtrace::new(),
         }
     }
 
@@ -166,7 +151,7 @@ impl ApiError {
             return Some(Cow::Borrowed(message));
         }
 
-        if let Some(cause) = self.cause() {
+        if let Some(cause) = self.source() {
             return Some(Cow::Owned(cause.to_string()));
         }
 
@@ -186,12 +171,11 @@ impl ApiError {
     }
 }
 
-#[cfg(not(feature = "with-failure"))]
 impl ApiError {
     pub fn with_cause<S, E>(status: S, err: E) -> Self
     where
         S: Into<StatusCode>,
-        E: StdError + 'static,
+        E: Error + Send + Sync + 'static,
     {
         Self {
             status: status.into(),
@@ -207,7 +191,7 @@ impl ApiError {
     where
         S: Into<StatusCode>,
         M: Into<String>,
-        E: StdError + 'static,
+        E: Error + Send + Sync + 'static,
     {
         Self {
             status: status.into(),
@@ -219,7 +203,7 @@ impl ApiError {
         }
     }
 
-    pub fn set_cause<E: StdError + 'static>(&mut self, cause: E) {
+    pub fn set_cause<E: Error + Send + Sync + 'static>(&mut self, cause: E) {
         self.cause = Some(Box::new(cause))
     }
 
@@ -231,7 +215,7 @@ impl ApiError {
         &mut self,
         name: T,
         value: V,
-    ) -> Result<(), Box<dyn StdError + 'static>> {
+    ) -> Result<(), Box<dyn Error + 'static>> {
         match serde_json::to_value(value) {
             Ok(value) => {
                 self.fields.insert(name.into(), value);
@@ -242,83 +226,9 @@ impl ApiError {
     }
 }
 
-#[cfg(feature = "with-failure")]
-impl ApiError {
-    pub fn with_cause<S, F>(status: S, err: F) -> Self
-    where
-        S: Into<StatusCode>,
-        F: Fail,
-    {
-        Self {
-            status: status.into(),
-            message: None,
-            type_url: None,
-            fields: HashMap::new(),
-            title: None,
-            cause: Some(Box::new(err)),
-            backtrace: Backtrace::new(),
-        }
-    }
-
-    pub fn with_message_and_cause<S, M, F>(status: S, message: M, err: F) -> Self
-    where
-        S: Into<StatusCode>,
-        M: Into<String>,
-        F: Fail,
-    {
-        Self {
-            status: status.into(),
-            message: Some(message.into()),
-            type_url: None,
-            fields: HashMap::new(),
-            title: None,
-            cause: Some(Box::new(err)),
-            backtrace: Backtrace::new(),
-        }
-    }
-
-    pub fn set_cause<F: Fail>(&mut self, cause: F) {
-        self.cause = Some(Box::new(cause))
-    }
-
-    /// Adds a serializable field. If the serialization fails nothing will be
-    /// added. This fails if a failure occurred while adding the field.
-    ///
-    /// An already present field with the same name will be replaced.
-    pub fn try_add_field<T: Into<String>, V: Serialize>(
-        &mut self,
-        name: T,
-        value: V,
-    ) -> Result<(), Error> {
-        match serde_json::to_value(value) {
-            Ok(value) => {
-                self.fields.insert(name.into(), value);
-                Ok(())
-            }
-            Err(err) => Err(err.into()),
-        }
-    }
-}
-
-#[cfg(not(feature = "with-failure"))]
-impl StdError for ApiError {
-    fn source(&self) -> Option<&(dyn StdError + 'static)> {
-        self.cause.as_ref().map(|e| &**e)
-    }
-}
-
-#[cfg(feature = "with-failure")]
-impl Fail for ApiError {
-    fn cause(&self) -> Option<&dyn Fail> {
-        self.cause.as_ref().map(|e| &**e)
-    }
-
-    fn backtrace(&self) -> Option<&Backtrace> {
-        Some(&self.backtrace)
-    }
-
-    fn name(&self) -> Option<&str> {
-        Some("http_api_problem::ApiError")
+impl Error for ApiError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        self.cause.as_ref().map(|e| &**e as _)
     }
 }
 
