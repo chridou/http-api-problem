@@ -69,10 +69,7 @@
 #[cfg(feature = "with-hyper")]
 extern crate hyper;
 
-#[cfg(feature = "with-failure")]
-use failure::*;
-#[cfg(not(feature = "with-failure"))]
-use std::error::Error as StdError;
+use std::error::Error;
 
 use std::fmt;
 
@@ -471,25 +468,9 @@ impl fmt::Display for HttpApiProblem {
     }
 }
 
-#[cfg(not(feature = "with-failure"))]
-impl StdError for HttpApiProblem {
-    fn source(&self) -> Option<&(dyn StdError + 'static)> {
+impl Error for HttpApiProblem {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
         None
-    }
-}
-
-#[cfg(feature = "with-failure")]
-impl Fail for HttpApiProblem {
-    fn cause(&self) -> Option<&dyn Fail> {
-        None
-    }
-
-    fn backtrace(&self) -> Option<&Backtrace> {
-        None
-    }
-
-    fn name(&self) -> Option<&str> {
-        Some("http_api_problem::HttpApiProblem")
     }
 }
 

@@ -71,11 +71,6 @@ The feature `with-api-error` enables a structure which can be
 return from "api handlers" that generate responses and can be 
 converted into an `HttpApiProblem`.
 
-### Failure Crate
-
-The feature `with-failure` will add implementations of `failure::Fail`
-for `HttpApiProblem` and `ApiError` instead of `std::error::Error`.
-
 ## Thank you
 A big "thank you" for contributions and inspirations goes to the
 following GitHub users:
