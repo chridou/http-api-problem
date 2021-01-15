@@ -406,7 +406,7 @@ impl HttpApiProblem {
     /// If status is `None` `500 - Internal Server Error` is the
     /// default.
     #[cfg(feature = "with-hyper")]
-    pub fn to_hyper_response(self) -> hyper::Response<hyper::Body> {
+    pub fn to_hyper_response(&self) -> hyper::Response<hyper::Body> {
         use hyper::header::{HeaderValue, CONTENT_LENGTH, CONTENT_TYPE};
         use hyper::*;
 
