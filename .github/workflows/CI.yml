@@ -15,7 +15,7 @@ jobs:
             "--features with-api-error",
           ]
         rust: [
-            1.42.0, # MSRV
+            1.45.0, # MSRV
             nightly, # it is good practise to test libraries against nightly to catch regressions in the compiler early
           ]
       fail-fast: false # don't want to kill the whole CI if nightly fails
