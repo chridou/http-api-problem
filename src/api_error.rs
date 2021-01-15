@@ -265,8 +265,8 @@ impl From<io::Error> for ApiError {
 }
 
 #[cfg(feature = "with-hyper")]
-impl From<hyper::error::Error> for ApiError {
-    fn from(error: hyper::error::Error) -> Self {
+impl From<hyper::Error> for ApiError {
+    fn from(error: hyper::Error) -> Self {
         ApiError::with_message_and_cause(
             StatusCode::INTERNAL_SERVER_ERROR,
             "An internal error caused by hyper occurred",
