@@ -9,7 +9,9 @@ jobs:
         features:
           [
             "--no-default-features",
-            "--all-features",
+            "--features with-hyper",
+            "--features with-actix-web",
+            "--features with-warp",
             "--features with-api-error",
           ]
         rust: [
