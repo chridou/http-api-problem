@@ -9,10 +9,10 @@ jobs:
         features:
           [
             "--no-default-features",
-            "--features with-hyper",
-            "--features with-actix-web",
-            "--features with-warp",
-            "--features with-api-error",
+            "--features hyper",
+            "--features actix-web",
+            "--features warp",
+            "--features api-error",
           ]
         rust: [
             1.45.0, # MSRV

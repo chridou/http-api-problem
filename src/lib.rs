@@ -66,7 +66,7 @@
 //! license and the Apache License (Version 2.0).
 //!
 //! Copyright (c) 2017 Christian Douven.
-#[cfg(feature = "with-hyper")]
+#[cfg(feature = "hyper")]
 extern crate hyper;
 
 use std::error::Error;
@@ -76,10 +76,13 @@ use std::fmt;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[cfg(feature = "with-api-error")]
+#[cfg(feature = "api-error")]
 mod api_error;
-#[cfg(feature = "with-api-error")]
+#[cfg(feature = "api-error")]
 pub use api_error::*;
+
+#[cfg(feature = "actix-web")]
+use actix_web_crate as actix_web;
 
 pub use http::StatusCode;
 
@@ -405,7 +408,7 @@ impl HttpApiProblem {
     ///
     /// If status is `None` `500 - Internal Server Error` is the
     /// default.
-    #[cfg(feature = "with-hyper")]
+    #[cfg(feature = "hyper")]
     pub fn to_hyper_response(&self) -> hyper::Response<hyper::Body> {
         use hyper::header::{HeaderValue, CONTENT_LENGTH, CONTENT_TYPE};
         use hyper::*;
@@ -433,7 +436,7 @@ impl HttpApiProblem {
     /// If status is `None` or not convertible
     /// to an actix status `500 - Internal Server Error` is the
     /// default.
-    #[cfg(feature = "with-actix-web")]
+    #[cfg(feature = "actix-web")]
     pub fn to_actix_response(&self) -> actix_web::HttpResponse {
         let effective_status = self.status_or_internal_server_error();
         let actix_status = actix_web::http::StatusCode::from_u16(effective_status.as_u16())
@@ -485,13 +488,13 @@ impl From<StatusCode> for HttpApiProblem {
 ///
 /// If status is `None` `500 - Internal Server Error` is the
 /// default.
-#[cfg(feature = "with-hyper")]
+#[cfg(feature = "hyper")]
 pub fn into_hyper_response<T: Into<HttpApiProblem>>(what: T) -> hyper::Response<hyper::Body> {
     let problem: HttpApiProblem = what.into();
     problem.to_hyper_response()
 }
 
-#[cfg(feature = "with-hyper")]
+#[cfg(feature = "hyper")]
 impl From<HttpApiProblem> for hyper::Response<hyper::Body> {
     fn from(problem: HttpApiProblem) -> hyper::Response<hyper::Body> {
         problem.to_hyper_response()
@@ -503,20 +506,20 @@ impl From<HttpApiProblem> for hyper::Response<hyper::Body> {
 ///
 /// If status is `None` `500 - Internal Server Error` is the
 /// default.
-#[cfg(feature = "with-actix-web")]
+#[cfg(feature = "actix-web")]
 pub fn into_actix_response<T: Into<HttpApiProblem>>(what: T) -> actix_web::HttpResponse {
     let problem: HttpApiProblem = what.into();
     problem.to_actix_response()
 }
 
-#[cfg(feature = "with-actix-web")]
+#[cfg(feature = "actix-web")]
 impl From<HttpApiProblem> for actix_web::HttpResponse {
     fn from(problem: HttpApiProblem) -> actix_web::HttpResponse {
         problem.to_actix_response()
     }
 }
 
-#[cfg(feature = "with-warp")]
+#[cfg(feature = "warp")]
 impl warp::reject::Reject for HttpApiProblem {}
 
 mod custom_http_status_serialization {
