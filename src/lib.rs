@@ -480,13 +480,6 @@ impl From<StatusCode> for HttpApiProblem {
     }
 }
 
-#[cfg(feature = "with-iron")]
-impl From<HttpApiProblem> for ::iron::response::Response {
-    fn from(problem: HttpApiProblem) -> ::iron::response::Response {
-        problem.to_iron_response()
-    }
-}
-
 /// Creates an `hyper::Response` from something that can become an
 /// `HttpApiProblem`.
 ///
