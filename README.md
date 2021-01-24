@@ -57,9 +57,9 @@ assert_eq!(Some("/on/1234/do/something".to_string()), p.instance);
 
 There are multiple features to integrate with web frameworks:
 
-* `with-warp`
-* `with-hyper`
-* `with-actix-web`
+* `warp`
+* `hyper`
+* `actix-web`
 
 These mainly convert the `HttpApiProblem` to response types of
 the frameworks and implement traits to integrate with the frameworks
@@ -67,7 +67,7 @@ error handling
 
 ### ApiError
 
-The feature `with-api-error` enables a structure which can be
+The feature `api-error` enables a structure which can be
 return from "api handlers" that generate responses and can be 
 converted into an `HttpApiProblem`.
 
