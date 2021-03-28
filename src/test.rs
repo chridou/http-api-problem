@@ -54,5 +54,4 @@ mod serialization {
 
         assert_eq!(prob.status, None);
     }
-
 }
