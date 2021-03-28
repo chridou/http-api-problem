@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Updated `actix` to 0.11
+- MSRV 1.46 (warp only)
 ## [0.21.0] - 2021-01-24
 
 ### Changed
