@@ -1,4 +1,0 @@
-write_mode = "overwrite"
-max_width = 100
-comment_width=100
-wrap_comments = false

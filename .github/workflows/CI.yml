@@ -12,7 +12,12 @@ jobs:
             "--features hyper",
             "--features actix-web",
             "--features warp",
+            "--features salvo",
             "--features api-error",
+            "--features 'hyper api-error'",
+            "--features 'actix-web api-error'",
+            "--features 'warp api-error'",
+            "--features 'salvo api-error'",
           ]
         rust: [
             1.46.0, # MSRV

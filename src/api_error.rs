@@ -169,6 +169,12 @@ impl ApiError {
         let problem = self.into_http_api_problem();
         problem.into()
     }
+
+    #[cfg(feature = "salvo")]
+    pub fn into_salvo_response(self) -> salvo::Response{
+        let problem = self.into_http_api_problem();
+        problem.to_salvo_response()
+    }
 }
 
 impl ApiError {
@@ -258,7 +264,7 @@ impl From<io::Error> for ApiError {
     fn from(error: io::Error) -> Self {
         ApiError::with_message_and_cause(
             StatusCode::INTERNAL_SERVER_ERROR,
-            "An internal error IO error occurred",
+            "An internal IO error occurred",
             error,
         )
     }
@@ -275,6 +281,13 @@ impl From<hyper::Error> for ApiError {
     }
 }
 
+#[cfg(feature = "hyper")]
+impl From<ApiError> for hyper::Response<hyper::Body> {
+    fn from(error: ApiError) -> hyper::Response<hyper::Body> {
+        error.into_hyper_response()
+    }
+}
+
 #[cfg(feature = "actix-web")]
 impl From<actix::prelude::MailboxError> for ApiError {
     fn from(error: actix::prelude::MailboxError) -> Self {
@@ -283,13 +296,6 @@ impl From<actix::prelude::MailboxError> for ApiError {
             "An internal error caused by internal messaging occured",
             error,
         )
-    }
-}
-
-#[cfg(feature = "hyper")]
-impl From<ApiError> for hyper::Response<hyper::Body> {
-    fn from(error: ApiError) -> hyper::Response<hyper::Body> {
-        error.into_hyper_response()
     }
 }
 
@@ -318,3 +324,21 @@ impl actix_web::error::ResponseError for ApiError {
 
 #[cfg(feature = "warp")]
 impl warp::reject::Reject for ApiError {}
+
+#[cfg(feature = "salvo")]
+impl From<salvo::Error> for ApiError {
+    fn from(error: salvo::Error) -> Self {
+        ApiError::with_message_and_cause(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "An internal error caused by salvo occurred",
+            error,
+        )
+    }
+}
+
+#[cfg(feature = "salvo")]
+impl From<ApiError> for salvo::Response {
+    fn from(error: ApiError) -> salvo::Response {
+        error.into_salvo_response()
+    }
+}

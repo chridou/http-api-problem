@@ -84,6 +84,9 @@ pub use api_error::*;
 #[cfg(feature = "actix-web")]
 use actix_web_crate as actix_web;
 
+#[cfg(feature = "salvo")]
+use salvo;
+
 pub use http::StatusCode;
 
 /// The recommended media type when serialized to JSON
@@ -451,6 +454,33 @@ impl HttpApiProblem {
             )
             .body(json)
     }
+
+    /// Creates a `salvo` response.
+    ///
+    /// If status is `None` `500 - Internal Server Error` is the
+    /// default.
+    #[cfg(feature = "salvo")]
+    pub fn to_salvo_response(&self) -> salvo::Response {
+        use salvo::hyper::header::{HeaderValue, CONTENT_LENGTH, CONTENT_TYPE};
+        use salvo::hyper::*;
+
+        let json = self.json_bytes();
+        let length = json.len() as u64;
+
+        let (mut parts, body) = Response::new(json.into()).into_parts();
+
+        parts.headers.insert(
+            CONTENT_TYPE,
+            HeaderValue::from_static(PROBLEM_JSON_MEDIA_TYPE),
+        );
+        parts.headers.insert(
+            CONTENT_LENGTH,
+            HeaderValue::from_str(&length.to_string()).unwrap(),
+        );
+        parts.status = self.status_or_internal_server_error();
+
+        salvo::Response::from_hyper(Response::from_parts(parts, body))
+    }
 }
 
 impl fmt::Display for HttpApiProblem {
@@ -521,6 +551,24 @@ impl From<HttpApiProblem> for actix_web::HttpResponse {
 
 #[cfg(feature = "warp")]
 impl warp::reject::Reject for HttpApiProblem {}
+
+/// Creates a `salvo::Response` from something that can become an
+/// `HttpApiProblem`.
+///
+/// If status is `None` `500 - Internal Server Error` is the
+/// default.
+#[cfg(feature = "salvo")]
+pub fn into_salvo_response<T: Into<HttpApiProblem>>(what: T) -> salvo::Response {
+    let problem: HttpApiProblem = what.into();
+    problem.to_salvo_response()
+}
+
+#[cfg(feature = "salvo")]
+impl From<HttpApiProblem> for salvo::Response {
+    fn from(problem: HttpApiProblem) -> salvo::Response {
+        problem.to_salvo_response()
+    }
+}
 
 mod custom_http_status_serialization {
     use http::StatusCode;
