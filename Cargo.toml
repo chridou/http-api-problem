@@ -26,3 +26,6 @@ salvo = { version = "0.9", optional = true, default-features = false }
 default = []
 actix-web = ["actix-web-crate", "actix"]
 api-error = []
+
+[package.metadata.docs.rs]
+all-features = true

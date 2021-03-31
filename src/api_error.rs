@@ -15,11 +15,104 @@ use serde_json::Value;
 
 use super::*;
 
+pub struct ApiErrorBuilder {
+    /// A message that describes the error in a human readable form.
+    ///
+    /// In an `HttpApiProblem` this becomes the `detail` in most cases.
+    ///
+    /// If None:
+    ///
+    /// * If there is a cause, this will become the details
+    /// * Otherwise there will be no details
+    pub message: Option<String>,
+    /// The suggested status code for the server to be returned to the client
+    ///
+    /// Defaults to 500.
+    pub status: StatusCode,
+    /// A URL that points to a detailed description of the error. If not
+    /// set it will most probably become `httpstatus.es.com/XXX` when
+    /// the problem response is generated.
+    pub type_url: Option<String>,
+    /// Additional JSON encodable information. It is up to the server how and if
+    /// it adds the given information.
+    pub fields: HashMap<String, Value>,
+    /// This is an optional title which can be used to create a valuable output
+    /// for consumers.
+    pub title: Option<String>,
+
+    pub source: Option<Box<dyn Error + Send + Sync + 'static>>,
+}
+
+impl Default for ApiErrorBuilder {
+    fn default() -> Self {
+        ApiErrorBuilder {
+            message: None,
+            status: StatusCode::INTERNAL_SERVER_ERROR,
+            type_url: None,
+            fields: HashMap::default(),
+            title: None,
+            source: None,
+        }
+    }
+}
+
+impl ApiErrorBuilder {
+    pub fn status<S: Into<StatusCode>>(mut self, status: S) -> Self {
+        self.status = status.into();
+        self
+    }
+
+    pub fn title<T: Into<String>>(mut self, title: T) -> Self {
+        self.title = Some(title.into());
+        self
+    }
+
+    pub fn message<M: Into<String>>(mut self, message: M) -> Self {
+        self.message = Some(message.into());
+        self
+    }
+
+    pub fn type_url<U: Into<String>>(mut self, type_url: U) -> Self {
+        self.type_url = Some(type_url.into());
+        self
+    }
+
+    /// Adds a serializable field. If the serialization fails nothing will be
+    /// added.
+    ///
+    /// An already present field with the same name will be replaced.
+    pub fn field<T: Into<String>, V: Serialize>(mut self, name: T, value: V) -> Self {
+        if let Ok(value) = serde_json::to_value(value) {
+            self.fields.insert(name.into(), value);
+        }
+
+        self
+    }
+
+    pub fn source<E: Error + Send + Sync + 'static>(mut self, cause: E) -> Self {
+        self.source = Some(Box::new(cause));
+        self
+    }
+
+    pub fn finish(self) -> ApiError {
+        ApiError {
+            status: self.status,
+            message: self.message,
+            type_url: self.type_url,
+            fields: self.fields,
+            title: self.title,
+            cause: self.source,
+        }
+    }
+}
+
 /// An error that should be returned from an API handler of a web service.
 ///
 /// This should be returned from a handler instead of a premature response
 /// or `HttpApiProblem`. This gives the server a chance for better introspection
 /// on handler errors and also a chance to create a customized response by himself
+///
+/// `ApiError` requires the feature "api-error" to be enabled.
 #[derive(Debug)]
 pub struct ApiError {
     /// A message that describes the error in a human readable form.
@@ -48,6 +141,10 @@ pub struct ApiError {
 }
 
 impl ApiError {
+    pub fn builder() -> ApiErrorBuilder {
+        ApiErrorBuilder::default()
+    }
+
     pub fn new<S>(status: S) -> Self
     where
         S: Into<StatusCode>,
@@ -171,7 +268,7 @@ impl ApiError {
     }
 
     #[cfg(feature = "salvo")]
-    pub fn into_salvo_response(self) -> salvo::Response{
+    pub fn into_salvo_response(self) -> salvo::Response {
         let problem = self.into_http_api_problem();
         problem.to_salvo_response()
     }
