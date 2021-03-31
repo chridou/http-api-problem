@@ -10,7 +10,6 @@
 //! A library to create HTTP response content for APIs based on
 //! [RFC7807](https://tools.ietf.org/html/rfc7807).
 //!
-//! ** Breaking changes! This crate now uses `http::StatusCode` instead of the own custom one **
 //!
 //! ## Usage
 //!
@@ -59,6 +58,27 @@
 //! assert_eq!(Some("detailed explanation".to_string()), p.detail);
 //! assert_eq!(Some("/on/1234/do/something".to_string()), p.instance);
 //! ```
+//!
+//! ## Features
+//! 
+//! ### Web Frameworks
+//! 
+//! There are multiple features to integrate with web frameworks:
+//! 
+//! * `warp`
+//! * `hyper`
+//! * `actix-web`
+//! * `salvo`
+//! 
+//! These mainly convert the `HttpApiProblem` to response types of
+//! the frameworks and implement traits to integrate with the frameworks
+//! error handling
+//! 
+//! ### ApiError
+//! 
+//! The feature `api-error` enables a structure which can be
+//! return from "api handlers" that generate responses and can be 
+//! converted into an `HttpApiProblem`.
 //!
 //! ## License
 //!

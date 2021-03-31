@@ -60,6 +60,7 @@ There are multiple features to integrate with web frameworks:
 * `warp`
 * `hyper`
 * `actix-web`
+* `salvo`
 
 These mainly convert the `HttpApiProblem` to response types of
 the frameworks and implement traits to integrate with the frameworks
