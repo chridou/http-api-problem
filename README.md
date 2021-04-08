@@ -20,32 +20,28 @@ Get the latest version for your `Cargo.toml` from
 `HttpApiProblem` implements `Serialize` and `Deserialize`.
 
 ## Examples
-
 ```rust
 use http_api_problem::*;
-
-let p = HttpApiProblem::with_title_and_type_from_status(HttpStatusCode::NotFound)
-    .set_detail("detailed explanation")
-    .set_instance("/on/1234/do/something");
-
+let p = HttpApiProblem::with_title_and_type(StatusCode::NOT_FOUND)
+    .detail("detailed explanation")
+    .instance("/on/1234/do/something");
 assert_eq!(Some("https://httpstatuses.com/404".to_string()), p.type_url);
-assert_eq!(Some(HttpStatusCode::NotFound), p.status);
+assert_eq!(Some(StatusCode::NOT_FOUND), p.status);
 assert_eq!("Not Found".to_string(), p.title);
 assert_eq!(Some("detailed explanation".to_string()), p.detail);
 assert_eq!(Some("/on/1234/do/something".to_string()), p.instance);
 ```
 
-There is also `From<u16>` implemented for `HttpStatusCode`:
+There is also `TryFrom<u16>` implemented for `StatusCode`:
 
 ```rust
 use http_api_problem::*;
-
-let p = HttpApiProblem::with_title_and_type_from_status(428)
-    .set_detail("detailed explanation")
-    .set_instance("/on/1234/do/something");
-
+let p = HttpApiProblem::try_with_title_and_type(428)
+    .detail("detailed explanation")
+    .instance("/on/1234/do/something")
+    .unwrap();
 assert_eq!(Some("https://httpstatuses.com/428".to_string()), p.type_url);
-assert_eq!(Some(HttpStatusCode::PreconditionRequired), p.status);
+assert_eq!(Some(StatusCode::PRECONDITION_REQUIRED), p.status);
 assert_eq!("Precondition Required".to_string(), p.title);
 assert_eq!(Some("detailed explanation".to_string()), p.detail);
 assert_eq!(Some("/on/1234/do/something".to_string()), p.instance);

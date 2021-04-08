@@ -4,12 +4,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.24.0] - unreleased
+## [0.50.0] - unreleased
+
+This release contains multiple breaking changes
 
 ### CHANGED
 
-- only accept statuscode as parameter
-- make `HttpApiProblem` methods mor builder like [BREAKING CHANGE]
+- make `HttpApiProblem` methods more builder like [BREAKING CHANGE]
+- `title` is no longer a mandatory field on `HttpApiProblem` [BREAKING CHANGE]
+- only accept statuscode as parameter for ApiError [BREAKING CHANGE]
+- `display_message` now writes into a formatter
+- `From<StatusCode> for HttpApiProblem` will set the status only
+- `Display` for `HttpApiProblem`
+- Fields of `ApiError` are private
 
 ### ADDED
 

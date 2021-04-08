@@ -5,7 +5,7 @@
 //! `ApiError` can be converted to a `HttpApiProblem`
 use std::borrow::Cow;
 use std::collections::HashMap;
-use std::fmt;
+use std::fmt::{self, Display};
 use std::io;
 
 use std::error::Error;
@@ -16,78 +16,85 @@ use serde_json::Value;
 use super::*;
 
 pub struct ApiErrorBuilder {
-    /// A message that describes the error in a human readable form.
-    ///
-    /// In an `HttpApiProblem` this becomes the `detail` in most cases.
-    ///
-    /// If None:
-    ///
-    /// * If there is a cause, this will become the details
-    /// * Otherwise there will be no details
-    pub message: Option<String>,
     /// The suggested status code for the server to be returned to the client
-    ///
-    /// Defaults to 500.
     pub status: StatusCode,
-    /// A URL that points to a detailed description of the error. If not
-    /// set it will most probably become `httpstatus.es.com/XXX` when
-    /// the problem response is generated.
-    pub type_url: Option<String>,
-    /// Additional JSON encodable information. It is up to the server how and if
-    /// it adds the given information.
-    pub fields: HashMap<String, Value>,
+
     /// This is an optional title which can be used to create a valuable output
     /// for consumers.
     pub title: Option<String>,
 
+    /// A message that describes the error in a human readable form.
+    ///
+    /// In an [HttpApiProblem] this becomes the `detail` in most cases.
+    pub message: Option<String>,
+
+    /// A URL that points to a detailed description of the error.
+    pub type_url: Option<String>,
+
+    /// A URI reference that identifies the specific
+    /// occurrence of the problem.  It may or may not yield further
+    /// information if dereferenced.
+    pub instance: Option<String>,
+
+    /// Additional JSON encodable information. It is up to the server how and if
+    /// it adds the given information.
+    pub fields: HashMap<String, Value>,
+
     pub source: Option<Box<dyn Error + Send + Sync + 'static>>,
 }
 
-impl Default for ApiErrorBuilder {
-    fn default() -> Self {
-        ApiErrorBuilder {
-            message: None,
-            status: StatusCode::INTERNAL_SERVER_ERROR,
-            type_url: None,
-            fields: HashMap::default(),
-            title: None,
-            source: None,
-        }
-    }
-}
-
 impl ApiErrorBuilder {
-    pub fn status<S: Into<StatusCode>>(mut self, status: S) -> Self {
-        self.status = status.into();
+    /// Set the [StatusCode]
+    pub fn status(mut self, status: StatusCode) -> Self {
+        self.status = status;
         self
     }
 
-    pub fn try_status<T: TryInto<StatusCode>, E>(mut self, status: T) -> Result<Self, E>
-    where
-        E: From<T::Error>,
-    {
-        self.status = status.try_into()?;
-        Ok(self)
-    }
-
-    pub fn title<T: Into<String>>(mut self, title: T) -> Self {
-        self.title = Some(title.into());
-        self
-    }
-
-    pub fn message<M: Into<String>>(mut self, message: M) -> Self {
-        self.message = Some(message.into());
-        self
-    }
-
-    pub fn type_url<U: Into<String>>(mut self, type_url: U) -> Self {
-        self.type_url = Some(type_url.into());
-        self
-    }
-
-    /// Adds a serializable field. If the serialization fails nothing will be
-    /// added.
+    /// Try to set the [StatusCode]
     ///
+    /// Fails if the `status` argument can not be converted to a [StatusCode]
+    pub fn try_status<T: TryInto<StatusCode>>(self, status: T) -> Result<Self, InvalidStatusCode>
+    where
+        T::Error: Into<InvalidStatusCode>,
+    {
+        let status = status.try_into().map_err(|e| e.into())?;
+        Ok(self.status(status))
+    }
+
+    /// This is an optional title which can be used to create a valuable output
+    /// for consumers.
+    pub fn title<T: Display>(mut self, title: T) -> Self {
+        self.title = Some(title.to_string());
+        self
+    }
+
+    /// A message that describes the error in a human readable form.
+    ///
+    /// In an [HttpApiProblem] this becomes the `detail` in most cases.
+    pub fn message<M: Display>(mut self, message: M) -> Self {
+        self.message = Some(message.to_string());
+        self
+    }
+
+    /// A URL that points to a detailed description of the error.
+    pub fn type_url<U: Display>(mut self, type_url: U) -> Self {
+        self.type_url = Some(type_url.to_string());
+        self
+    }
+
+    /// Sets the `instance`
+    ///
+    /// A URI reference that identifies the specific
+    /// occurrence of the problem.  It may or may not yield further
+    /// information if dereferenced.
+    pub fn instance<T: Display>(mut self, instance: T) -> Self {
+        self.instance = Some(instance.to_string());
+        self
+    }
+
+    /// Adds a serializable field.
+    ///
+    /// If the serialization fails nothing will be added.
     /// An already present field with the same name will be replaced.
     pub fn field<T: Into<String>, V: Serialize>(mut self, name: T, value: V) -> Self {
         if let Ok(value) = serde_json::to_value(value) {
@@ -97,132 +104,158 @@ impl ApiErrorBuilder {
         self
     }
 
-    pub fn source<E: Error + Send + Sync + 'static>(self, cause: E) -> Self {
-        self.source_boxed(Box::new(cause))
+    pub fn source<E: Error + Send + Sync + 'static>(self, source: E) -> Self {
+        self.source_in_a_box(Box::new(source))
     }
 
-    pub fn source_boxed<E: Into< Box< dyn Error + Send + Sync + 'static>>>(mut self, cause: E) -> Self {
-        self.source = Some(cause.into());
+    pub fn source_in_a_box<E: Into<Box<dyn Error + Send + Sync + 'static>>>(
+        mut self,
+        source: E,
+    ) -> Self {
+        self.source = Some(source.into());
         self
     }
 
+    /// Build the [ApiError]
     pub fn finish(self) -> ApiError {
         ApiError {
+            title: self.title,
             status: self.status,
             message: self.message,
             type_url: self.type_url,
+            instance: self.instance,
             fields: self.fields,
-            title: self.title,
-            cause: self.source,
+            source: self.source,
         }
     }
 }
 
 /// An error that should be returned from an API handler of a web service.
 ///
-/// This should be returned from a handler instead of a premature response
-/// or `HttpApiProblem`. This gives the server a chance for better introspection
-/// on handler errors and also a chance to create a customized response by himself
+/// This should be returned from a handler as an error instead of a response
+/// or [HttpApiProblem]. Allows for logging etc. right before a response is generated.
 ///
-/// `ApiError` requires the feature "api-error" to be enabled.
+/// Advantage over using an [HttpApiProblem] directly are that the [StatusCode] is
+/// mandatory and that this struct can also capture a source error
+/// which the [HttpApiProblem] does not since no error chains
+/// should be transmitted to clients.
+///
+/// `ApiError` requires the feature `api-error` to be enabled.
 #[derive(Debug)]
 pub struct ApiError {
-    /// A message that describes the error in a human readable form.
-    ///
-    /// In an `HttpApiProblem` this becomes the `detail` in most cases.
-    ///
-    /// If None:
-    ///
-    /// * If there is a cause, this will become the details
-    /// * Otherwise there will be no details
-    pub message: Option<String>,
-    /// The suggested status code for the server to be returned to the client
-    pub status: StatusCode,
-    /// A URL that points to a detailed description of the error. If not
-    /// set it will most probably become `httpstatus.es.com/XXX` when
-    /// the problem response is generated.
-    pub type_url: Option<String>,
-    /// Additional JSON encodable information. It is up to the server how and if
-    /// it adds the given information.
-    pub fields: HashMap<String, Value>,
-    /// This is an optional title which can be used to create a valuable output
-    /// for consumers.
-    pub title: Option<String>,
-
-    cause: Option<Box<dyn Error + Send + Sync + 'static>>,
+    status: StatusCode,
+    title: Option<String>,
+    message: Option<String>,
+    instance: Option<String>,
+    type_url: Option<String>,
+    fields: HashMap<String, Value>,
+    source: Option<Box<dyn Error + Send + Sync + 'static>>,
 }
 
 impl ApiError {
     /// Get an [ApiErrorBuilder] with the given [StatusCode] preset.
     pub fn builder(status: StatusCode) -> ApiErrorBuilder {
-        ApiErrorBuilder::default().status(status)
+        ApiErrorBuilder {
+            message: None,
+            status,
+            type_url: None,
+            instance: None,
+            fields: HashMap::default(),
+            title: None,
+            source: None,
+        }
+    }
+
+    /// Try to get an [ApiErrorBuilder] with the given [StatusCode] preset.
+    ///
+    /// Fails if the `status` argument can not be converted to a [StatusCode]
+    pub fn try_builder<S: TryInto<StatusCode>>(
+        status: S,
+    ) -> Result<ApiErrorBuilder, InvalidStatusCode>
+    where
+        S::Error: Into<InvalidStatusCode>,
+    {
+        let status = status.try_into().map_err(|e| e.into())?;
+        Ok(Self::builder(status))
     }
 
     /// Create a new instance with the given [StatusCode]
-    pub fn new<S>(status: S) -> Self
-    where
-        S: Into<StatusCode>,
-    {
-        Self {
-            status: status.into(),
-            message: None,
-            type_url: None,
-            fields: HashMap::new(),
-            title: None,
-            cause: None,
-        }
-    }
-
-    /// Create a new instance with the given [StatusCode] and a message
-    pub fn with_message<M>(status: StatusCode, message: M) -> Self
-    where
-        M: Into<String>,
-     {
-        Self {
-            status: status.into(),
-            message: Some(message.into()),
-            type_url: None,
-            fields: HashMap::new(),
-            title: None,
-            cause: None,
-        }
-    }
-
-
-    /// Create a new instance with the given [StatusCode] and a cause
-    pub fn with_cause<E>(status: StatusCode, err: E) -> Self
-    where
-        E: Error + Send + Sync + 'static,
-    {
+    pub fn new(status: StatusCode) -> Self {
         Self {
             status,
+            title: None,
             message: None,
             type_url: None,
+            instance: None,
             fields: HashMap::new(),
-            title: None,
-            cause: Some(Box::new(err)),
+            source: None,
         }
     }
 
-    /// Create a new instance with the given [StatusCode], message and a cause
-    pub fn with_message_and_cause<M, E>(status: StatusCode, message: M, err: E) -> Self
+    /// Try to create a new instance with the given [StatusCode]
+    ///
+    /// Fails if the `status` argument can not be converted to a [StatusCode]
+    pub fn try_new<S: TryInto<StatusCode>>(status: S) -> Result<Self, InvalidStatusCode>
     where
-        M: Into<String>,
-        E: Error + Send + Sync + 'static,
+        S::Error: Into<InvalidStatusCode>,
     {
-        Self {
-            status: status,
-            message: Some(message.into()),
-            type_url: None,
-            fields: HashMap::new(),
-            title: None,
-            cause: Some(Box::new(err)),
-        }
+        let status = status.try_into().map_err(|e| e.into())?;
+        Ok(Self::new(status))
     }
 
-    /// Set the [StatusCode] for this error
-    pub fn set_cause<E: Error + Send + Sync + 'static>(&mut self, cause: E) {
-        self.cause = Some(Box::new(cause))
+    /// This is an optional title which can be used to create a valuable output
+    /// for consumers.
+    pub fn set_title<T: Display>(&mut self, title: T) {
+        self.title = Some(title.to_string())
+    }
+
+    /// This is an optional title which can be used to create a valuable output
+    /// for consumers.
+    pub fn title(&self) -> Option<&str> {
+        self.title.as_deref()
+    }
+
+    /// Set a message that describes the error in a human readable form.
+    pub fn set_message<T: Display>(&mut self, message: T) {
+        self.message = Some(message.to_string())
+    }
+
+    /// A message that describes the error in a human readable form.
+    pub fn message(&self) -> Option<&str> {
+        self.message.as_deref()
+    }
+
+    /// Set a URL that points to a detailed description of the error.
+    ///
+    /// If not set it will most probably become `httpstatus.es.com/XXX` when
+    /// the problem response is generated.
+    pub fn set_type_url<T: Display>(&mut self, type_url: T) {
+        self.type_url = Some(type_url.to_string())
+    }
+
+    /// A URL that points to a detailed description of the error.
+    pub fn type_url(&self) -> Option<&str> {
+        self.type_url.as_deref()
+    }
+
+    pub fn set_instance<T: Display>(&mut self, instance: T) {
+        self.instance = Some(instance.to_string())
+    }
+
+    /// A URL that points to a detailed description of the error.
+    pub fn instance(&self) -> Option<&str> {
+        self.instance.as_deref()
+    }
+
+    pub fn set_source<E: Error + Send + Sync + 'static>(&mut self, source: E) {
+        self.set_source_in_a_box(Box::new(source))
+    }
+
+    pub fn set_source_in_a_box<E: Into<Box<dyn Error + Send + Sync + 'static>>>(
+        &mut self,
+        source: E,
+    ) {
+        self.source = Some(source.into());
     }
 
     /// Adds a serializable field. If the serialization fails nothing will be
@@ -252,31 +285,52 @@ impl ApiError {
         }
     }
 
-    pub fn display_message(&self) -> Cow<str> {
-        if let Some(message) = self.detail_message() {
-            return message;
-        }
-
-        if let Some(canonical_reason) = self.status.canonical_reason() {
-            return Cow::Borrowed(canonical_reason);
-        }
-
-        Cow::Borrowed(self.status.as_str())
-    }
-
     /// Creates an [HttpApiProblem] from this.
     ///
     /// Note: If the status is [StatusCode::UNAUTHORIZED] fields will
     /// **not** be put into the problem.
     pub fn to_http_api_problem(&self) -> HttpApiProblem {
-        let mut problem = HttpApiProblem::with_title_and_type_from_status(self.status);
+        let mut problem = HttpApiProblem::with_title_and_type(self.status);
 
-        if let Some(detail_message) = self.detail_message() {
-            problem.detail = Some(detail_message.to_string())
+        problem.title = self.title.clone();
+
+        if let Some(message) = self.detail_message() {
+            problem.detail = Some(message.into())
         }
 
-        if let Some(custom_type_url) = self.type_url.as_ref() {
-            problem.type_url = Some(custom_type_url.to_string())
+        problem.type_url = self.type_url.clone();
+        problem.instance = self.instance.clone();
+
+        if self.status != StatusCode::UNAUTHORIZED {
+            for (key, value) in self.fields.iter() {
+                let _ = problem.set_value(key.to_string(), value);
+            }
+        }
+
+        problem
+    }
+
+    /// Turns this into an [HttpApiProblem].
+    ///
+    /// Note: If the status is `[StatusCode]::UNAUTHORIZED` fields will
+    /// **not** be put into the problem.
+    pub fn into_http_api_problem(self) -> HttpApiProblem {
+        let mut problem = HttpApiProblem::with_title_and_type(self.status);
+
+        if let Some(title) = self.title.as_ref() {
+            problem.title = Some(title.to_owned());
+        }
+
+        if let Some(message) = self.detail_message() {
+            problem.detail = Some(message.into())
+        }
+
+        if let Some(type_url) = self.type_url.as_ref() {
+            problem.type_url = Some(type_url.to_owned())
+        }
+
+        if let Some(instance) = self.instance.as_ref() {
+            problem.instance = Some(instance.to_owned())
         }
 
         if self.status != StatusCode::UNAUTHORIZED {
@@ -285,54 +339,25 @@ impl ApiError {
             }
         }
 
-        if let Some(title) = self.title.as_ref() {
-            problem.title = title.to_owned();
-        }
-
         problem
     }
 
-    /// Turns this into an [HttpApiProblem].
+    /// If there is a message it will be the message otherwise the source error stringified
     ///
-    /// Note: If the status is [StatusCode::UNAUTHORIZED] fields will
-    /// **not** be put into the problem.
-    pub fn into_http_api_problem(self) -> HttpApiProblem {
-        let mut problem = HttpApiProblem::with_title_and_type_from_status(self.status);
-
-        if let Some(detail_message) = self.detail_message() {
-            problem.detail = Some(detail_message.to_string())
-        }
-
-        if let Some(custom_type_url) = self.type_url {
-            problem.type_url = Some(custom_type_url)
-        }
-
-        if self.status != StatusCode::UNAUTHORIZED {
-            for (key, value) in self.fields.into_iter() {
-                let _ = problem.set_value(key, &value);
-            }
-        }
-
-        if let Some(title) = self.title {
-            problem.title = title;
-        }
-
-        problem
-    }
-
-    fn detail_message(&self) -> Option<Cow<str>> {
+    /// If none is present, `None` is returned
+    pub fn detail_message(&self) -> Option<Cow<str>> {
         if let Some(message) = self.message.as_ref() {
             return Some(Cow::Borrowed(message));
         }
 
-        if let Some(cause) = self.source() {
-            return Some(Cow::Owned(cause.to_string()));
+        if let Some(source) = self.source() {
+            return Some(Cow::Owned(source.to_string()));
         }
 
         None
     }
 
-    /// Creates a `hyper` response containing a problem JSON.
+    /// Creates a [hyper] response containing a problem JSON.
     ///
     /// Requires the `hyper` feature
     #[cfg(feature = "hyper")]
@@ -350,16 +375,16 @@ impl ApiError {
         problem.into()
     }
 
-    /// Creates a `salvo` response containing a problem JSON.
+    /// Creates a [salvo] response containing a problem JSON.
     ///
-    /// Requires the `tide` feature
+    /// Requires the `salvo` feature
     #[cfg(feature = "salvo")]
     pub fn into_salvo_response(self) -> salvo::Response {
         let problem = self.into_http_api_problem();
         problem.to_salvo_response()
     }
 
-    /// Creates a `tide` response containing a problem JSON.
+    /// Creates a [tide] response containing a problem JSON.
     ///
     /// Requires the `tide` feature
     #[cfg(feature = "tide")]
@@ -371,11 +396,11 @@ impl ApiError {
 
 impl Error for ApiError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
-        self.cause.as_ref().map(|e| &**e as _)
+        self.source.as_ref().map(|e| &**e as _)
     }
 }
 
-impl fmt::Display for ApiError {
+impl Display for ApiError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if let Some(detail_message) = self.detail_message() {
             write!(f, "{}: {}", self.status, detail_message)
@@ -399,22 +424,19 @@ impl From<ApiError> for HttpApiProblem {
 
 impl From<io::Error> for ApiError {
     fn from(error: io::Error) -> Self {
-        ApiError::with_message_and_cause(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "An internal IO error occurred",
-            error,
-        )
+        ApiError::builder(StatusCode::INTERNAL_SERVER_ERROR)
+            .title("An IO error occurred")
+            .source(error)
+            .finish()
     }
 }
 
 #[cfg(feature = "hyper")]
 impl From<hyper::Error> for ApiError {
     fn from(error: hyper::Error) -> Self {
-        ApiError::with_message_and_cause(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "An internal error caused by hyper occurred",
-            error,
-        )
+        ApiError::builder(StatusCode::INTERNAL_SERVER_ERROR)
+            .source(error)
+            .finish()
     }
 }
 
@@ -428,11 +450,9 @@ impl From<ApiError> for hyper::Response<hyper::Body> {
 #[cfg(feature = "actix-web")]
 impl From<actix::prelude::MailboxError> for ApiError {
     fn from(error: actix::prelude::MailboxError) -> Self {
-        ApiError::with_message_and_cause(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "An internal error caused by internal messaging occured",
-            error,
-        )
+        ApiError::builder(StatusCode::INTERNAL_SERVER_ERROR)
+            .source(error)
+            .finish()
     }
 }
 
@@ -465,11 +485,9 @@ impl warp::reject::Reject for ApiError {}
 #[cfg(feature = "salvo")]
 impl From<salvo::Error> for ApiError {
     fn from(error: salvo::Error) -> Self {
-        ApiError::with_message_and_cause(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "An internal error caused by salvo occurred",
-            error,
-        )
+        ApiError::builder(StatusCode::INTERNAL_SERVER_ERROR)
+            .source(error)
+            .finish()
     }
 }
 
@@ -483,14 +501,13 @@ impl From<ApiError> for salvo::Response {
 #[cfg(feature = "tide")]
 impl From<tide::Error> for ApiError {
     fn from(error: tide::Error) -> Self {
-        // tide also has its version of status which should always be 
+        // tide also has its version of status which should always be
         // convertible without an error.
         let status: StatusCode = u16::from(error.status())
             .try_into()
-            .unwrap_or(StatusCode::INTERNAL_SERVER_ERROR); 
+            .unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
         ApiError::builder(status)
-            .title(status.canonical_reason().unwrap_or("<unknown status code>"))
-            .source_boxed(error.into_inner())
+            .source_in_a_box(error.into_inner())
             .finish()
     }
 }
