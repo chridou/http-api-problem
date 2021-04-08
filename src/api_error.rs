@@ -62,6 +62,14 @@ impl ApiErrorBuilder {
         self
     }
 
+    pub fn try_status<T: TryInto<StatusCode>, E>(mut self, status: T) -> Result<Self, E>
+    where
+        E: From<T::Error>,
+    {
+        self.status = status.try_into()?;
+        Ok(self)
+    }
+
     pub fn title<T: Into<String>>(mut self, title: T) -> Self {
         self.title = Some(title.into());
         self
@@ -89,8 +97,12 @@ impl ApiErrorBuilder {
         self
     }
 
-    pub fn source<E: Error + Send + Sync + 'static>(mut self, cause: E) -> Self {
-        self.source = Some(Box::new(cause));
+    pub fn source<E: Error + Send + Sync + 'static>(self, cause: E) -> Self {
+        self.source_boxed(Box::new(cause))
+    }
+
+    pub fn source_boxed<E: Into< Box< dyn Error + Send + Sync + 'static>>>(mut self, cause: E) -> Self {
+        self.source = Some(cause.into());
         self
     }
 
@@ -141,10 +153,12 @@ pub struct ApiError {
 }
 
 impl ApiError {
-    pub fn builder() -> ApiErrorBuilder {
-        ApiErrorBuilder::default()
+    /// Get an [ApiErrorBuilder] with the given [StatusCode] preset.
+    pub fn builder(status: StatusCode) -> ApiErrorBuilder {
+        ApiErrorBuilder::default().status(status)
     }
 
+    /// Create a new instance with the given [StatusCode]
     pub fn new<S>(status: S) -> Self
     where
         S: Into<StatusCode>,
@@ -159,11 +173,11 @@ impl ApiError {
         }
     }
 
-    pub fn with_message<S, M>(status: S, message: M) -> Self
+    /// Create a new instance with the given [StatusCode] and a message
+    pub fn with_message<M>(status: StatusCode, message: M) -> Self
     where
         M: Into<String>,
-        S: Into<StatusCode>,
-    {
+     {
         Self {
             status: status.into(),
             message: Some(message.into()),
@@ -171,6 +185,70 @@ impl ApiError {
             fields: HashMap::new(),
             title: None,
             cause: None,
+        }
+    }
+
+
+    /// Create a new instance with the given [StatusCode] and a cause
+    pub fn with_cause<E>(status: StatusCode, err: E) -> Self
+    where
+        E: Error + Send + Sync + 'static,
+    {
+        Self {
+            status,
+            message: None,
+            type_url: None,
+            fields: HashMap::new(),
+            title: None,
+            cause: Some(Box::new(err)),
+        }
+    }
+
+    /// Create a new instance with the given [StatusCode], message and a cause
+    pub fn with_message_and_cause<M, E>(status: StatusCode, message: M, err: E) -> Self
+    where
+        M: Into<String>,
+        E: Error + Send + Sync + 'static,
+    {
+        Self {
+            status: status,
+            message: Some(message.into()),
+            type_url: None,
+            fields: HashMap::new(),
+            title: None,
+            cause: Some(Box::new(err)),
+        }
+    }
+
+    /// Set the [StatusCode] for this error
+    pub fn set_cause<E: Error + Send + Sync + 'static>(&mut self, cause: E) {
+        self.cause = Some(Box::new(cause))
+    }
+
+    /// Adds a serializable field. If the serialization fails nothing will be
+    /// added. This method returns `true` if the field was added and `false` if
+    /// the field could not be added.
+    ///
+    /// An already present field with the same name will be replaced.
+    pub fn add_field<T: Into<String>, V: Serialize>(&mut self, name: T, value: V) -> bool {
+        self.try_add_field(name, value).is_ok()
+    }
+
+    /// Adds a serializable field. If the serialization fails nothing will be
+    /// added. This fails if a failure occurred while adding the field.
+    ///
+    /// An already present field with the same name will be replaced.
+    pub fn try_add_field<T: Into<String>, V: Serialize>(
+        &mut self,
+        name: T,
+        value: V,
+    ) -> Result<(), Box<dyn Error + 'static>> {
+        match serde_json::to_value(value) {
+            Ok(value) => {
+                self.fields.insert(name.into(), value);
+                Ok(())
+            }
+            Err(err) => Err(Box::new(err)),
         }
     }
 
@@ -186,15 +264,10 @@ impl ApiError {
         Cow::Borrowed(self.status.as_str())
     }
 
-    /// Adds a serializable field. If the serialization fails nothing will be
-    /// added. This method returns `true` if the field was added and `false` if
-    /// the field could not be added.
+    /// Creates an [HttpApiProblem] from this.
     ///
-    /// An already present field with the same name will be replaced.
-    pub fn add_field<T: Into<String>, V: Serialize>(&mut self, name: T, value: V) -> bool {
-        self.try_add_field(name, value).is_ok()
-    }
-
+    /// Note: If the status is [StatusCode::UNAUTHORIZED] fields will
+    /// **not** be put into the problem.
     pub fn to_http_api_problem(&self) -> HttpApiProblem {
         let mut problem = HttpApiProblem::with_title_and_type_from_status(self.status);
 
@@ -219,6 +292,10 @@ impl ApiError {
         problem
     }
 
+    /// Turns this into an [HttpApiProblem].
+    ///
+    /// Note: If the status is [StatusCode::UNAUTHORIZED] fields will
+    /// **not** be put into the problem.
     pub fn into_http_api_problem(self) -> HttpApiProblem {
         let mut problem = HttpApiProblem::with_title_and_type_from_status(self.status);
 
@@ -255,77 +332,40 @@ impl ApiError {
         None
     }
 
+    /// Creates a `hyper` response containing a problem JSON.
+    ///
+    /// Requires the `hyper` feature
     #[cfg(feature = "hyper")]
     pub fn into_hyper_response(self) -> hyper::Response<hyper::Body> {
         let problem = self.into_http_api_problem();
         problem.to_hyper_response()
     }
 
+    /// Creates a `actix-web` response containing a problem JSON.
+    ///
+    /// Requires the `actix.web` feature
     #[cfg(feature = "actix-web")]
     pub fn into_actix_web_response(self) -> actix_web::HttpResponse {
         let problem = self.into_http_api_problem();
         problem.into()
     }
 
+    /// Creates a `salvo` response containing a problem JSON.
+    ///
+    /// Requires the `tide` feature
     #[cfg(feature = "salvo")]
     pub fn into_salvo_response(self) -> salvo::Response {
         let problem = self.into_http_api_problem();
         problem.to_salvo_response()
     }
-}
 
-impl ApiError {
-    pub fn with_cause<S, E>(status: S, err: E) -> Self
-    where
-        S: Into<StatusCode>,
-        E: Error + Send + Sync + 'static,
-    {
-        Self {
-            status: status.into(),
-            message: None,
-            type_url: None,
-            fields: HashMap::new(),
-            title: None,
-            cause: Some(Box::new(err)),
-        }
-    }
-
-    pub fn with_message_and_cause<S, M, E>(status: S, message: M, err: E) -> Self
-    where
-        S: Into<StatusCode>,
-        M: Into<String>,
-        E: Error + Send + Sync + 'static,
-    {
-        Self {
-            status: status.into(),
-            message: Some(message.into()),
-            type_url: None,
-            fields: HashMap::new(),
-            title: None,
-            cause: Some(Box::new(err)),
-        }
-    }
-
-    pub fn set_cause<E: Error + Send + Sync + 'static>(&mut self, cause: E) {
-        self.cause = Some(Box::new(cause))
-    }
-
-    /// Adds a serializable field. If the serialization fails nothing will be
-    /// added. This fails if a failure occurred while adding the field.
+    /// Creates a `tide` response containing a problem JSON.
     ///
-    /// An already present field with the same name will be replaced.
-    pub fn try_add_field<T: Into<String>, V: Serialize>(
-        &mut self,
-        name: T,
-        value: V,
-    ) -> Result<(), Box<dyn Error + 'static>> {
-        match serde_json::to_value(value) {
-            Ok(value) => {
-                self.fields.insert(name.into(), value);
-                Ok(())
-            }
-            Err(err) => Err(Box::new(err)),
-        }
+    /// Requires the `tide` feature
+    #[cfg(feature = "tide")]
+    pub fn into_tide_response(self) -> tide::Response {
+        let problem = self.into_http_api_problem();
+        problem.to_tide_response()
     }
 }
 
@@ -437,5 +477,27 @@ impl From<salvo::Error> for ApiError {
 impl From<ApiError> for salvo::Response {
     fn from(error: ApiError) -> salvo::Response {
         error.into_salvo_response()
+    }
+}
+
+#[cfg(feature = "tide")]
+impl From<tide::Error> for ApiError {
+    fn from(error: tide::Error) -> Self {
+        // tide also has its version of status which should always be 
+        // convertible without an error.
+        let status: StatusCode = u16::from(error.status())
+            .try_into()
+            .unwrap_or(StatusCode::INTERNAL_SERVER_ERROR); 
+        ApiError::builder(status)
+            .title(status.canonical_reason().unwrap_or("<unknown status code>"))
+            .source_boxed(error.into_inner())
+            .finish()
+    }
+}
+
+#[cfg(feature = "tide")]
+impl From<ApiError> for tide::Response {
+    fn from(error: ApiError) -> tide::Response {
+        error.into_tide_response()
     }
 }

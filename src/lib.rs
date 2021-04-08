@@ -69,6 +69,7 @@
 //! * `hyper`
 //! * `actix-web`
 //! * `salvo`
+//! * `tide`
 //!
 //! These mainly convert the `HttpApiProblem` to response types of
 //! the frameworks and implement traits to integrate with the frameworks
@@ -89,8 +90,8 @@
 #[cfg(feature = "hyper")]
 extern crate hyper;
 
+use std::convert::TryInto;
 use std::error::Error;
-
 use std::fmt;
 
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -107,7 +108,7 @@ use actix_web_crate as actix_web;
 #[cfg(feature = "salvo")]
 use salvo;
 
-pub use http::StatusCode;
+pub use http::status::{InvalidStatusCode, StatusCode};
 
 /// The recommended media type when serialized to JSON
 pub static PROBLEM_JSON_MEDIA_TYPE: &str = "application/problem+json";
@@ -183,7 +184,7 @@ impl HttpApiProblem {
     /// assert_eq!(None, p.detail);
     /// assert_eq!(None, p.instance);
     /// ```
-    pub fn new<T: Into<String>>(title: T) -> HttpApiProblem {
+    pub fn new<T: Into<String>>(title: T) -> Self {
         HttpApiProblem {
             type_url: None,
             status: None,
@@ -210,8 +211,7 @@ impl HttpApiProblem {
     /// assert_eq!(None, p.detail);
     /// assert_eq!(None, p.instance);
     /// ```
-    pub fn with_title_and_type_from_status<T: Into<StatusCode>>(status: T) -> HttpApiProblem {
-        let status = status.into();
+    pub fn with_title_and_type_from_status(status: StatusCode) -> Self {
         HttpApiProblem {
             type_url: Some(format!("https://httpstatuses.com/{}", status.as_u16())),
             status: Some(status),
@@ -223,6 +223,35 @@ impl HttpApiProblem {
             instance: None,
             additional_fields: Default::default(),
         }
+    }
+
+    /// Creates a new instance with the `title` and `type_url` derived from the
+    /// `status`.
+    ///
+    /// Fails if the argument can not be converted into a [StatusCode].
+    ///
+    /// #Example
+    ///
+    /// ```rust
+    /// use http_api_problem::*;
+    ///
+    /// let p = HttpApiProblem::with_title_and_type_from_status(StatusCode::SERVICE_UNAVAILABLE);
+    ///
+    /// assert_eq!(Some("https://httpstatuses.com/503".to_string()), p.type_url);
+    /// assert_eq!(Some(StatusCode::SERVICE_UNAVAILABLE), p.status);
+    /// assert_eq!("Service Unavailable", &p.title);
+    /// assert_eq!(None, p.detail);
+    /// assert_eq!(None, p.instance);
+    /// ```
+    pub fn try_with_title_and_type_from_status<T: TryInto<StatusCode>, E>(
+        status: T,
+    ) -> Result<Self, E>
+    where
+        E: From<T::Error>,
+    {
+        let status = status.try_into()?;
+
+        Ok(Self::with_title_and_type_from_status(status))
     }
 
     /// Creates a new instance with `title` derived from `status`.
@@ -240,8 +269,7 @@ impl HttpApiProblem {
     /// assert_eq!(None, p.detail);
     /// assert_eq!(None, p.instance);
     /// ```
-    pub fn with_title_from_status<T: Into<StatusCode>>(status: T) -> HttpApiProblem {
-        let status = status.into();
+    pub fn with_title_from_status(status: StatusCode) -> Self {
         HttpApiProblem {
             type_url: None,
             status: Some(status),
@@ -255,6 +283,31 @@ impl HttpApiProblem {
         }
     }
 
+    /// Creates a new instance with `title` derived from `status`.
+    ///
+    /// Fails if the argument can not be converted into a [StatusCode].
+    ///
+    /// #Example
+    ///
+    /// ```rust
+    /// use http_api_problem::*;
+    ///
+    /// let p = HttpApiProblem::try_with_title_from_status(404).unwrap();
+    ///
+    /// assert_eq!(None, p.type_url);
+    /// assert_eq!(Some(StatusCode::NOT_FOUND), p.status);
+    /// assert_eq!("Not Found", p.title);
+    /// assert_eq!(None, p.detail);
+    /// assert_eq!(None, p.instance);
+    /// ```
+    pub fn try_with_title_from_status<T: TryInto<StatusCode>, E>(status: T) -> Result<Self, E>
+    where
+        E: From<T::Error>,
+    {
+        let status = status.try_into()?;
+        Ok(Self::with_title_from_status(status))
+    }
+
     /// Sets the `type_url`
     ///
     /// #Example
@@ -262,7 +315,7 @@ impl HttpApiProblem {
     /// ```rust
     /// use http_api_problem::*;
     ///
-    /// let p = HttpApiProblem::new("Error").set_type_url("http://example.com/my/real_error");
+    /// let p = HttpApiProblem::new("Error").type_url("http://example.com/my/real_error");
     ///
     /// assert_eq!(Some("http://example.com/my/real_error".to_string()), p.type_url);
     /// assert_eq!(None, p.status);
@@ -270,10 +323,9 @@ impl HttpApiProblem {
     /// assert_eq!(None, p.detail);
     /// assert_eq!(None, p.instance);
     /// ```
-    pub fn set_type_url<T: Into<String>>(self, type_url: T) -> HttpApiProblem {
-        let mut s = self;
-        s.type_url = Some(type_url.into());
-        s
+    pub fn type_url<T: Into<String>>(mut self, type_url: T) -> Self {
+        self.type_url = Some(type_url.into());
+        self
     }
 
     /// Sets the `status`
@@ -283,7 +335,7 @@ impl HttpApiProblem {
     /// ```rust
     /// use http_api_problem::*;
     ///
-    /// let p = HttpApiProblem::new("Error").set_status(StatusCode::NOT_FOUND);
+    /// let p = HttpApiProblem::new("Error").status(StatusCode::NOT_FOUND);
     ///
     /// assert_eq!(None, p.type_url);
     /// assert_eq!(Some(StatusCode::NOT_FOUND), p.status);
@@ -291,11 +343,34 @@ impl HttpApiProblem {
     /// assert_eq!(None, p.detail);
     /// assert_eq!(None, p.instance);
     /// ```
-    pub fn set_status<T: Into<StatusCode>>(self, status: T) -> HttpApiProblem {
-        let status = status.into();
-        let mut s = self;
-        s.status = Some(status);
-        s
+    pub fn status(mut self, status: StatusCode) -> Self {
+        self.status = Some(status);
+        self
+    }
+
+    /// Tries to set the `status`
+    ///
+    /// Fails if the argument can not be converted into a [StatusCode].
+    ///
+    /// #Example
+    ///
+    /// ```rust
+    /// use http_api_problem::*;
+    ///
+    /// let p = HttpApiProblem::new("Error").try_status(404);
+    ///
+    /// assert_eq!(None, p.type_url);
+    /// assert_eq!(Some(StatusCode::NOT_FOUND), p.status);
+    /// assert_eq!("Error", p.title);
+    /// assert_eq!(None, p.detail);
+    /// assert_eq!(None, p.instance);
+    /// ```
+    pub fn try_status<T: TryInto<StatusCode>, E>(mut self, status: T) -> Result<Self, E>
+    where
+        E: From<T::Error>,
+    {
+        self.status = Some(status.try_into()?);
+        Ok(self)
     }
 
     /// Sets the `title`
@@ -305,7 +380,7 @@ impl HttpApiProblem {
     /// ```rust
     /// use http_api_problem::*;
     ///
-    /// let p = HttpApiProblem::new("Error").set_title("Another Error");
+    /// let p = HttpApiProblem::new("Error").title("Another Error");
     ///
     /// assert_eq!(None, p.type_url);
     /// assert_eq!(None, p.status);
@@ -313,10 +388,9 @@ impl HttpApiProblem {
     /// assert_eq!(None, p.detail);
     /// assert_eq!(None, p.instance);
     /// ```
-    pub fn set_title<T: Into<String>>(self, title: T) -> HttpApiProblem {
-        let mut s = self;
-        s.title = title.into();
-        s
+    pub fn title<T: Into<String>>(mut self, title: T) -> Self {
+        self.title = title.into();
+        self
     }
 
     /// Sets the `detail`
@@ -326,7 +400,7 @@ impl HttpApiProblem {
     /// ```rust
     /// use http_api_problem::*;
     ///
-    /// let p = HttpApiProblem::new("Error").set_detail("a detailed description");
+    /// let p = HttpApiProblem::new("Error").detail("a detailed description");
     ///
     /// assert_eq!(None, p.type_url);
     /// assert_eq!(None, p.status);
@@ -334,15 +408,77 @@ impl HttpApiProblem {
     /// assert_eq!(Some("a detailed description".to_string()), p.detail);
     /// assert_eq!(None, p.instance);
     /// ```
-    pub fn set_detail<T: Into<String>>(self, detail: T) -> HttpApiProblem {
-        let mut s = self;
-        s.detail = Some(detail.into());
-        s
+    pub fn detail<T: Into<String>>(mut self, detail: T) -> HttpApiProblem {
+        self.detail = Some(detail.into());
+        self
     }
 
-    /// Add a value that must be serializable. The key must not be one of the
-    /// field names of this struct.
-    pub fn set_value<K, V>(&mut self, key: K, value: &V) -> Result<(), String>
+    /// Sets the `instance`
+    ///
+    /// #Example
+    ///
+    /// ```rust
+    /// use http_api_problem::*;
+    ///
+    /// let p = HttpApiProblem::new("Error").instance("/account/1234/withdraw");
+    ///
+    /// assert_eq!(None, p.type_url);
+    /// assert_eq!(None, p.status);
+    /// assert_eq!("Error", p.title);
+    /// assert_eq!(None, p.detail);
+    /// assert_eq!(Some("/account/1234/withdraw".to_string()), p.instance);
+    /// ```
+    pub fn instance<T: Into<String>>(mut self, instance: T) -> HttpApiProblem {
+        self.instance = Some(instance.into());
+        self
+    }
+
+    /// Add a value that must be serializable.
+    ///
+    /// The key must not be one of the field names of this struct.
+    pub fn try_value<K, V>(mut self, key: K, value: &V) -> Result<Self, String>
+    where
+        V: Serialize,
+        K: Into<String>,
+    {
+        self.try_set_value(key, value)?;
+        Ok(self)
+    }
+
+    /// Add a value that must be serializable.
+    ///
+    /// The key must not be one of the field names of this struct.
+    /// If the key is a field name or the value is not serializable nothing happens.
+    pub fn value<K, V>(mut self, key: K, value: &V) -> Self
+    where
+        V: Serialize,
+        K: Into<String>,
+    {
+        self.set_value(key, value);
+        self
+    }
+
+    pub fn set_value<K, V>(&mut self, key: K, value: &V)
+    where
+        V: Serialize,
+        K: Into<String>,
+    {
+        let _ = self.try_set_value(key, value);
+    }
+
+    /// Returns the deserialized field for the given key.
+    ///
+    /// If the key does not exist or the field is not deserializable to
+    /// the target type `None` is returned
+    pub fn get_value<K, V>(&self, key: &str) -> Option<V>
+    where
+        V: DeserializeOwned,
+    {
+        self.json_value(key)
+            .and_then(|v| serde_json::from_value(v.clone()).ok())
+    }
+
+    pub fn try_set_value<K, V>(&mut self, key: K, value: &V) -> Result<(), String>
     where
         V: Serialize,
         K: Into<String>,
@@ -364,23 +500,6 @@ impl HttpApiProblem {
         Ok(())
     }
 
-    /// Returns the deserialized field for the given key.
-    ///
-    /// If the key does not exist or the field is not deserializable to
-    /// the target type `None` is returned
-    pub fn value<K, V>(&self, key: &str) -> Option<V>
-    where
-        V: DeserializeOwned,
-    {
-        self.json_value(key)
-            .and_then(|v| serde_json::from_value(v.clone()).ok())
-    }
-
-    /// Returns the `serde_json::Value` for the given key if the key exists.
-    pub fn json_value(&self, key: &str) -> Option<&serde_json::Value> {
-        self.additional_fields.get(key)
-    }
-
     pub fn keys<K, V>(&self) -> impl Iterator<Item = &String>
     where
         V: DeserializeOwned,
@@ -388,25 +507,10 @@ impl HttpApiProblem {
         self.additional_fields.keys()
     }
 
-    /// Sets the `instance`
-    ///
-    /// #Example
-    ///
-    /// ```rust
-    /// use http_api_problem::*;
-    ///
-    /// let p = HttpApiProblem::new("Error").set_instance("/account/1234/withdraw");
-    ///
-    /// assert_eq!(None, p.type_url);
-    /// assert_eq!(None, p.status);
-    /// assert_eq!("Error", p.title);
-    /// assert_eq!(None, p.detail);
-    /// assert_eq!(Some("/account/1234/withdraw".to_string()), p.instance);
-    /// ```
-    pub fn set_instance<T: Into<String>>(self, instance: T) -> HttpApiProblem {
-        let mut s = self;
-        s.instance = Some(instance.into());
-        s
+
+    /// Returns the `serde_json::Value` for the given key if the key exists.
+    pub fn json_value(&self, key: &str) -> Option<&serde_json::Value> {
+        self.additional_fields.get(key)
     }
 
     /// Serialize to a JSON `Vec<u8>`
@@ -431,6 +535,8 @@ impl HttpApiProblem {
     ///
     /// If status is `None` `500 - Internal Server Error` is the
     /// default.
+    ///
+    /// Requires the `hyper` feature
     #[cfg(feature = "hyper")]
     pub fn to_hyper_response(&self) -> hyper::Response<hyper::Body> {
         use hyper::header::{HeaderValue, CONTENT_LENGTH, CONTENT_TYPE};
@@ -459,6 +565,8 @@ impl HttpApiProblem {
     /// If status is `None` or not convertible
     /// to an actix status `500 - Internal Server Error` is the
     /// default.
+    ///
+    /// Requires the `actix-web` feature
     #[cfg(feature = "actix-web")]
     pub fn to_actix_response(&self) -> actix_web::HttpResponse {
         let effective_status = self.status_or_internal_server_error();
@@ -479,6 +587,8 @@ impl HttpApiProblem {
     ///
     /// If status is `None` `500 - Internal Server Error` is the
     /// default.
+    ///
+    /// Requires the `salvo` feature
     #[cfg(feature = "salvo")]
     pub fn to_salvo_response(&self) -> salvo::Response {
         use salvo::hyper::header::{HeaderValue, CONTENT_LENGTH, CONTENT_TYPE};
@@ -500,6 +610,24 @@ impl HttpApiProblem {
         parts.status = self.status_or_internal_server_error();
 
         salvo::Response::from_hyper(Response::from_parts(parts, body))
+    }
+
+    /// Creates a `tide` response.
+    ///
+    /// If status is `None` `500 - Internal Server Error` is the
+    /// default.
+    ///
+    /// Requires the `tide` feature
+    #[cfg(feature = "tide")]
+    pub fn to_tide_response(&self) -> tide::Response {
+        let json = self.json_bytes();
+        let length = json.len() as u64;
+
+        tide::Response::builder(self.status_code_or_internal_server_error())
+            .body(json)
+            .header("Content-Length", length.to_string())
+            .content_type(PROBLEM_JSON_MEDIA_TYPE)
+            .build()
     }
 }
 
@@ -590,16 +718,34 @@ impl From<HttpApiProblem> for salvo::Response {
     }
 }
 
+/// Creates a `tide::Response` from something that can become an
+/// `HttpApiProblem`.
+///
+/// If status is `None` `500 - Internal Server Error` is the
+/// default.
+#[cfg(feature = "tide")]
+pub fn into_tide_response<T: Into<HttpApiProblem>>(what: T) -> tide::Response {
+    let problem: HttpApiProblem = what.into();
+    problem.to_tide_response()
+}
+
+#[cfg(feature = "tide")]
+impl From<HttpApiProblem> for tide::Response {
+    fn from(problem: HttpApiProblem) -> tide::Response {
+        problem.to_tide_response()
+    }
+}
+
 mod custom_http_status_serialization {
     use http::StatusCode;
     use serde::{Deserialize, Deserializer, Serializer};
     use std::convert::TryFrom;
 
-    pub fn serialize<S>(date: &Option<StatusCode>, s: S) -> Result<S::Ok, S::Error>
+    pub fn serialize<S>(status: &Option<StatusCode>, s: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        if let Some(ref status_code) = *date {
+        if let Some(ref status_code) = *status {
             return s.serialize_u16(status_code.as_u16());
         }
         s.serialize_none()

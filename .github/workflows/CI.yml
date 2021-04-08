@@ -13,11 +13,13 @@ jobs:
             "--features actix-web",
             "--features warp",
             "--features salvo",
+            "--features tide",
             "--features api-error",
             "--features 'hyper api-error'",
             "--features 'actix-web api-error'",
             "--features 'warp api-error'",
             "--features 'salvo api-error'",
+            "--features 'tide api-error'",
           ]
         rust: [
             1.46.0, # MSRV
