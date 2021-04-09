@@ -12,7 +12,7 @@ This release contains multiple breaking changes
 
 - make `HttpApiProblem` methods more builder like [BREAKING CHANGE]
 - `title` is no longer a mandatory field on `HttpApiProblem` [BREAKING CHANGE]
-- only accept statuscode as parameter for ApiError [BREAKING CHANGE]
+- only accept statuscode as parameter for ApiError [BREAKING CHANGE] to get rid of 500 as a default
 - `display_message` now writes into a formatter
 - `From<StatusCode> for HttpApiProblem` will set the status only
 - `Display` for `HttpApiProblem`

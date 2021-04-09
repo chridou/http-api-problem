@@ -45,8 +45,8 @@ pub struct ApiErrorBuilder {
 
 impl ApiErrorBuilder {
     /// Set the [StatusCode]
-    pub fn status(mut self, status: StatusCode) -> Self {
-        self.status = status;
+    pub fn status<T: Into<StatusCode>>(mut self, status: T) -> Self {
+        self.status = status.into();
         self
     }
 
@@ -161,10 +161,10 @@ pub struct ApiError {
 
 impl ApiError {
     /// Get an [ApiErrorBuilder] with the given [StatusCode] preset.
-    pub fn builder(status: StatusCode) -> ApiErrorBuilder {
+    pub fn builder<T: Into<StatusCode>>(status: T) -> ApiErrorBuilder {
         ApiErrorBuilder {
             message: None,
-            status,
+            status: status.into(),
             type_url: None,
             instance: None,
             fields: HashMap::default(),
@@ -187,9 +187,9 @@ impl ApiError {
     }
 
     /// Create a new instance with the given [StatusCode]
-    pub fn new(status: StatusCode) -> Self {
+    pub fn new<T: Into<StatusCode>>(status: T) -> Self {
         Self {
-            status,
+            status: status.into(),
             title: None,
             message: None,
             type_url: None,
@@ -208,6 +208,11 @@ impl ApiError {
     {
         let status = status.try_into().map_err(|e| e.into())?;
         Ok(Self::new(status))
+    }
+
+    /// Set the [StatusCode].
+    pub fn set_status<T: Into<StatusCode>>(&mut self, status: T) {
+        self.status = status.into();
     }
 
     /// This is an optional title which can be used to create a valuable output

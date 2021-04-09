@@ -204,7 +204,7 @@ impl HttpApiProblem {
     /// assert_eq!(None, p.type_url);
     /// assert_eq!(None, p.instance);
     /// ```
-    pub fn new(status: StatusCode) -> Self {
+    pub fn new<T: Into<StatusCode>>(status: T) -> Self {
         Self::empty().status(status)
     }
 
@@ -248,7 +248,8 @@ impl HttpApiProblem {
     /// assert_eq!(None, p.type_url);
     /// assert_eq!(None, p.instance);
     /// ```
-    pub fn with_title(status: StatusCode) -> Self {
+    pub fn with_title<T: Into<StatusCode>>(status: T) -> Self {
+        let status = status.into();
         Self::new(status).title(
             status
                 .canonical_reason()
@@ -298,7 +299,8 @@ impl HttpApiProblem {
     /// assert_eq!(Some("https://httpstatuses.com/503".to_string()), p.type_url);
     /// assert_eq!(None, p.instance);
     /// ```
-    pub fn with_title_and_type(status: StatusCode) -> Self {
+    pub fn with_title_and_type<T: Into<StatusCode>>(status: T) -> Self {
+        let status = status.into();
         Self::with_title(status).type_url(format!("https://httpstatuses.com/{}", status.as_u16()))
     }
 
@@ -349,6 +351,26 @@ impl HttpApiProblem {
         }
     }
 
+    /// Sets the `status`
+    ///
+    /// #Example
+    ///
+    /// ```rust
+    /// use http_api_problem::*;
+    ///
+    /// let p = HttpApiProblem::new(StatusCode::NOT_FOUND).title("Error");
+    ///
+    /// assert_eq!(Some(StatusCode::NOT_FOUND), p.status);
+    /// assert_eq!(Some("Error"), p.title.as_deref());
+    /// assert_eq!(None, p.detail);
+    /// assert_eq!(None, p.type_url);
+    /// assert_eq!(None, p.instance);
+    /// ```
+    pub fn status<T: Into<StatusCode>>(mut self, status: T) -> Self {
+        self.status = Some(status.into());
+        self
+    }
+
     /// Sets the `type_url`
     ///
     /// #Example
@@ -369,25 +391,6 @@ impl HttpApiProblem {
         self
     }
 
-    /// Sets the `status`
-    ///
-    /// #Example
-    ///
-    /// ```rust
-    /// use http_api_problem::*;
-    ///
-    /// let p = HttpApiProblem::new(StatusCode::NOT_FOUND).title("Error");
-    ///
-    /// assert_eq!(Some(StatusCode::NOT_FOUND), p.status);
-    /// assert_eq!(Some("Error"), p.title.as_deref());
-    /// assert_eq!(None, p.detail);
-    /// assert_eq!(None, p.type_url);
-    /// assert_eq!(None, p.instance);
-    /// ```
-    pub fn status(mut self, status: StatusCode) -> Self {
-        self.status = Some(status);
-        self
-    }
 
     /// Tries to set the `status`
     ///
@@ -671,6 +674,35 @@ impl HttpApiProblem {
 
     fn status_code_or_internal_server_error(&self) -> u16 {
         self.status_or_internal_server_error().as_u16()
+    }
+
+    #[deprecated(since="0.50.0", note="please use `with_title` instead")]
+    pub fn with_title_from_status<T: Into<StatusCode>>(status: T) -> Self {
+        Self::with_title(status)
+    }
+    #[deprecated(since="0.50.0", note="please use `with_title_and_type` instead")]
+    pub fn with_title_and_type_from_status<T: Into<StatusCode>>(status: T) -> Self {
+        Self::with_title_and_type(status)
+    }
+    #[deprecated(since="0.50.0", note="please use `status` instead")]
+    pub fn set_status<T: Into<StatusCode>>(self, status: T) -> Self {
+        self.status(status)
+    }
+    #[deprecated(since="0.50.0", note="please use `title` instead")]
+    pub fn set_title<T: Into<String>>(self, title: T) -> Self {
+        self.title(title)
+    }
+    #[deprecated(since="0.50.0", note="please use `detail` instead")]
+    pub fn set_detail<T: Into<String>>(self, detail: T) -> Self {
+        self.detail(detail)
+    }
+    #[deprecated(since="0.50.0", note="please use `type_url` instead")]
+    pub fn set_type_url<T: Into<String>>(self, type_url: T) -> Self {
+        self.type_url(type_url)
+    }
+    #[deprecated(since="0.50.0", note="please use `instance` instead")]
+    pub fn set_instance<T: Into<String>>(self, instance: T) -> Self {
+        self.instance(instance)
     }
 }
 
