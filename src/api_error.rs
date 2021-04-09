@@ -119,8 +119,8 @@ impl ApiErrorBuilder {
     /// Build the [ApiError]
     pub fn finish(self) -> ApiError {
         ApiError {
-            title: self.title,
             status: self.status,
+            title: self.title,
             message: self.message,
             type_url: self.type_url,
             instance: self.instance,
@@ -163,12 +163,12 @@ impl ApiError {
     /// Get an [ApiErrorBuilder] with the given [StatusCode] preset.
     pub fn builder<T: Into<StatusCode>>(status: T) -> ApiErrorBuilder {
         ApiErrorBuilder {
-            message: None,
             status: status.into(),
+            title: None,
+            message: None,
             type_url: None,
             instance: None,
             fields: HashMap::default(),
-            title: None,
             source: None,
         }
     }

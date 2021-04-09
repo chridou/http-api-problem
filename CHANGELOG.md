@@ -17,6 +17,7 @@ This release contains multiple breaking changes
 - `From<StatusCode> for HttpApiProblem` will set the status only
 - `Display` for `HttpApiProblem`
 - Fields of `ApiError` are private
+- `ApiError` now has an `instance field`
 
 ### ADDED
 
