@@ -10,7 +10,6 @@
 //! A library to create HTTP response content for APIs based on
 //! [RFC7807](https://tools.ietf.org/html/rfc7807).
 //!
-//!
 //! ## Usage
 //!
 //! Get the latest version for your `Cargo.toml` from
@@ -32,15 +31,17 @@
 //! ```rust
 //! use http_api_problem::*;
 //!
-//! let p = HttpApiProblem::with_title_and_type(StatusCode::NOT_FOUND)
-//!     .detail("detailed explanation")
-//!     .instance("/on/1234/do/something");
+//! let p = HttpApiProblem::new(StatusCode::UNPROCESSABLE_ENTITY)
+//!     .title("You do not have enough credit.")
+//!     .detail("Your current balance is 30, but that costs 50.")
+//!     .type_url("https://example.com/probs/out-of-credit")
+//!     .instance("/account/12345/msgs/abc");
 //!
-//! assert_eq!(Some(StatusCode::NOT_FOUND), p.status);
-//! assert_eq!(Some("Not Found"), p.title.as_deref());
-//! assert_eq!(Some("detailed explanation"), p.detail.as_deref());
-//! assert_eq!(Some("https://httpstatuses.com/404"), p.type_url.as_deref());
-//! assert_eq!(Some("/on/1234/do/something"), p.instance.as_deref());
+//! assert_eq!(Some(StatusCode::UNPROCESSABLE_ENTITY), p.status);
+//! assert_eq!(Some("You do not have enough credit."), p.title.as_deref());
+//! assert_eq!(Some("Your current balance is 30, but that costs 50."), p.detail.as_deref());
+//! assert_eq!(Some("https://example.com/probs/out-of-credit"), p.type_url.as_deref());
+//! assert_eq!(Some("/account/12345/msgs/abc"), p.instance.as_deref());
 //! ```
 //!
 //! There is also `TryFrom<u16>` implemented for [StatusCode]:
@@ -48,16 +49,27 @@
 //! ```rust
 //! use http_api_problem::*;
 //!
-//! let p = HttpApiProblem::try_with_title_and_type(428).unwrap()
-//!     .detail("detailed explanation")
-//!     .instance("/on/1234/do/something");
+//! let p = HttpApiProblem::try_new(422).unwrap()
+//!     .title("You do not have enough credit.")
+//!     .detail("Your current balance is 30, but that costs 50.")
+//!     .type_url("https://example.com/probs/out-of-credit")
+//!     .instance("/account/12345/msgs/abc");
 //!
-//! assert_eq!(Some(StatusCode::PRECONDITION_REQUIRED), p.status);
-//! assert_eq!(Some("Precondition Required"), p.title.as_deref());
-//! assert_eq!(Some("detailed explanation"), p.detail.as_deref());
-//! assert_eq!(Some("https://httpstatuses.com/428"), p.type_url.as_deref());
-//! assert_eq!(Some("/on/1234/do/something"), p.instance.as_deref());
+//! assert_eq!(Some(StatusCode::UNPROCESSABLE_ENTITY), p.status);
+//! assert_eq!(Some("You do not have enough credit."), p.title.as_deref());
+//! assert_eq!(Some("Your current balance is 30, but that costs 50."), p.detail.as_deref());
+//! assert_eq!(Some("https://example.com/probs/out-of-credit"), p.type_url.as_deref());
+//! assert_eq!(Some("/account/12345/msgs/abc"), p.instance.as_deref());
 //! ```
+//!
+//! ## Status Codes
+//!
+//! The specification does not require the [HttpApiProblem] to contain a 
+//! status code. Nevertheless this crate supports creating responses
+//! for web frameworks. Responses require a status code. If no status code
+//! was set on the [HttpApiProblem] `500 - Internal Server Error` will be
+//! used as a fallback. This can be easily avoided by only using those constructor
+//! functions which require a [StatusCode].
 //!
 //! ## Features
 //!

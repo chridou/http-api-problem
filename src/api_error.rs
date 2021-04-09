@@ -140,6 +140,13 @@ impl ApiErrorBuilder {
 /// which the [HttpApiProblem] does not since no error chains
 /// should be transmitted to clients.
 ///
+/// # Message on Display and converting to HttpApiProblem
+///
+/// When [Display::fmt] is invoked or when the details field of an [HttpApiProblem]
+/// is filled, the `message` field is used if present. If no `message` is set 
+/// but there is a `source` error set, `to_string()` of the source will
+/// be used instead. Otherwise nothing will be displayed or set.
+///
 /// `ApiError` requires the feature `api-error` to be enabled.
 #[derive(Debug)]
 pub struct ApiError {
@@ -287,7 +294,7 @@ impl ApiError {
 
     /// Creates an [HttpApiProblem] from this.
     ///
-    /// Note: If the status is [StatusCode::UNAUTHORIZED] fields will
+    /// Note: If the status is [StatusCode]::UNAUTHORIZED fields will
     /// **not** be put into the problem.
     pub fn to_http_api_problem(&self) -> HttpApiProblem {
         let mut problem = HttpApiProblem::with_title_and_type(self.status);
@@ -312,7 +319,7 @@ impl ApiError {
 
     /// Turns this into an [HttpApiProblem].
     ///
-    /// Note: If the status is `[StatusCode]::UNAUTHORIZED` fields will
+    /// Note: If the status is [StatusCode]::UNAUTHORIZED fields will
     /// **not** be put into the problem.
     pub fn into_http_api_problem(self) -> HttpApiProblem {
         let mut problem = HttpApiProblem::with_title_and_type(self.status);
@@ -402,11 +409,24 @@ impl Error for ApiError {
 
 impl Display for ApiError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if let Some(detail_message) = self.detail_message() {
-            write!(f, "{}: {}", self.status, detail_message)
-        } else {
-            write!(f, "{}", self.status)
+        write!(f, "{}", self.status)?;
+
+        match (self.title.as_ref(), self.detail_message()) {
+            (Some(title), Some(detail)) => return write!(f, " - {} - {}", title, detail),
+            (Some(title), None) => return write!(f, " - {}", title),
+            (None, Some(detail)) => return write!(f, " - {}", detail),
+            (None, None) => (),
         }
+
+        if let Some(type_url) = self.type_url.as_ref() {
+            return write!(f, " of type {}", type_url);
+        }
+
+        if let Some(instance) = self.instance.as_ref() {
+            return write!(f, " on {}", instance);
+        }
+
+        Ok(())
     }
 }
 
