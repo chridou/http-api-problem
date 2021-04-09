@@ -143,7 +143,7 @@ impl ApiErrorBuilder {
 /// # Message on Display and converting to HttpApiProblem
 ///
 /// When [Display::fmt] is invoked or when the details field of an [HttpApiProblem]
-/// is filled, the `message` field is used if present. If no `message` is set 
+/// is filled, the `message` field is used if present. If no `message` is set
 /// but there is a `source` error set, `to_string()` of the source will
 /// be used instead. Otherwise nothing will be displayed or set.
 ///
@@ -213,6 +213,11 @@ impl ApiError {
     /// Set the [StatusCode].
     pub fn set_status<T: Into<StatusCode>>(&mut self, status: T) {
         self.status = status.into();
+    }
+
+    /// Get the [StatusCode].
+    pub fn status<T: Into<StatusCode>>(&self) -> StatusCode {
+        self.status
     }
 
     /// This is an optional title which can be used to create a valuable output
@@ -438,6 +443,12 @@ impl Display for ApiError {
 impl From<StatusCode> for ApiError {
     fn from(s: StatusCode) -> Self {
         Self::new(s)
+    }
+}
+
+impl From<ApiErrorBuilder> for ApiError {
+    fn from(builder: ApiErrorBuilder) -> Self {
+        builder.finish()
     }
 }
 

@@ -64,7 +64,7 @@
 //!
 //! ## Status Codes
 //!
-//! The specification does not require the [HttpApiProblem] to contain a 
+//! The specification does not require the [HttpApiProblem] to contain a
 //! status code. Nevertheless this crate supports creating responses
 //! for web frameworks. Responses require a status code. If no status code
 //! was set on the [HttpApiProblem] `500 - Internal Server Error` will be
@@ -391,7 +391,6 @@ impl HttpApiProblem {
         self
     }
 
-
     /// Tries to set the `status`
     ///
     /// Fails if the argument can not be converted into a [StatusCode].
@@ -676,31 +675,33 @@ impl HttpApiProblem {
         self.status_or_internal_server_error().as_u16()
     }
 
-    #[deprecated(since="0.50.0", note="please use `with_title` instead")]
+    // Deprecations
+
+    #[deprecated(since = "0.50.0", note = "please use `with_title` instead")]
     pub fn with_title_from_status<T: Into<StatusCode>>(status: T) -> Self {
         Self::with_title(status)
     }
-    #[deprecated(since="0.50.0", note="please use `with_title_and_type` instead")]
+    #[deprecated(since = "0.50.0", note = "please use `with_title_and_type` instead")]
     pub fn with_title_and_type_from_status<T: Into<StatusCode>>(status: T) -> Self {
         Self::with_title_and_type(status)
     }
-    #[deprecated(since="0.50.0", note="please use `status` instead")]
+    #[deprecated(since = "0.50.0", note = "please use `status` instead")]
     pub fn set_status<T: Into<StatusCode>>(self, status: T) -> Self {
         self.status(status)
     }
-    #[deprecated(since="0.50.0", note="please use `title` instead")]
+    #[deprecated(since = "0.50.0", note = "please use `title` instead")]
     pub fn set_title<T: Into<String>>(self, title: T) -> Self {
         self.title(title)
     }
-    #[deprecated(since="0.50.0", note="please use `detail` instead")]
+    #[deprecated(since = "0.50.0", note = "please use `detail` instead")]
     pub fn set_detail<T: Into<String>>(self, detail: T) -> Self {
         self.detail(detail)
     }
-    #[deprecated(since="0.50.0", note="please use `type_url` instead")]
+    #[deprecated(since = "0.50.0", note = "please use `type_url` instead")]
     pub fn set_type_url<T: Into<String>>(self, type_url: T) -> Self {
         self.type_url(type_url)
     }
-    #[deprecated(since="0.50.0", note="please use `instance` instead")]
+    #[deprecated(since = "0.50.0", note = "please use `instance` instead")]
     pub fn set_instance<T: Into<String>>(self, instance: T) -> Self {
         self.instance(instance)
     }
