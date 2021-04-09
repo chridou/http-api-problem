@@ -5,7 +5,7 @@ mod serialization {
 
     #[test]
     fn should_serialize_status_present_correctly() {
-        let prob = HttpApiProblem::with_title_from_status(StatusCode::NOT_FOUND);
+        let prob = HttpApiProblem::with_title(StatusCode::NOT_FOUND);
 
         let sample = serde_json::to_value(prob).unwrap();
         let expected = json!({
@@ -18,7 +18,7 @@ mod serialization {
 
     #[test]
     fn should_serialize_status_apsent_correctly() {
-        let prob = HttpApiProblem::new("foo");
+        let prob = HttpApiProblem::empty().title("foo");
 
         let sample = serde_json::to_value(prob).unwrap();
         let expected = json!({

@@ -9,22 +9,16 @@ struct Person {
 }
 
 fn main() {
-    let mut problem =
-        HttpApiProblem::with_title_and_type_from_status(StatusCode::INTERNAL_SERVER_ERROR);
-
-    problem
-        .set_value("error", &"this sucks".to_string())
-        .unwrap();
-    problem.set_value("everything", &42).unwrap();
-    problem
-        .set_value(
+    let problem = HttpApiProblem::with_title_and_type(StatusCode::INTERNAL_SERVER_ERROR)
+        .value("error", &"this sucks")
+        .value("everything", &42)
+        .value(
             "person",
             &Person {
                 name: "Peter".into(),
                 age: 77,
             },
-        )
-        .unwrap();
+        );
 
     let json = problem.json_string();
 

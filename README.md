@@ -23,32 +23,34 @@ Get the latest version for your `Cargo.toml` from
 
 ```rust
 use http_api_problem::*;
+let p = HttpApiProblem::new(StatusCode::UNPROCESSABLE_ENTITY)
+    .title("You do not have enough credit.")
+    .detail("Your current balance is 30, but that costs 50.")
+    .type_url("https://example.com/probs/out-of-credit")
+    .instance("/account/12345/msgs/abc");
 
-let p = HttpApiProblem::with_title_and_type_from_status(HttpStatusCode::NotFound)
-    .set_detail("detailed explanation")
-    .set_instance("/on/1234/do/something");
-
-assert_eq!(Some("https://httpstatuses.com/404".to_string()), p.type_url);
-assert_eq!(Some(HttpStatusCode::NotFound), p.status);
-assert_eq!("Not Found".to_string(), p.title);
-assert_eq!(Some("detailed explanation".to_string()), p.detail);
-assert_eq!(Some("/on/1234/do/something".to_string()), p.instance);
+assert_eq!(Some(StatusCode::UNPROCESSABLE_ENTITY), p.status);
+assert_eq!(Some("You do not have enough credit."), p.title.as_deref());
+assert_eq!(Some("Your current balance is 30, but that costs 50."), p.detail.as_deref());
+assert_eq!(Some("https://example.com/probs/out-of-credit"), p.type_url.as_deref());
+assert_eq!(Some("/account/12345/msgs/abc"), p.instance.as_deref());
 ```
 
-There is also `From<u16>` implemented for `HttpStatusCode`:
+There is also `TryFrom<u16>` implemented for [StatusCode]:
 
 ```rust
 use http_api_problem::*;
+let p = HttpApiProblem::try_new(422).unwrap()
+    .title("You do not have enough credit.")
+    .detail("Your current balance is 30, but that costs 50.")
+    .type_url("https://example.com/probs/out-of-credit")
+    .instance("/account/12345/msgs/abc");
 
-let p = HttpApiProblem::with_title_and_type_from_status(428)
-    .set_detail("detailed explanation")
-    .set_instance("/on/1234/do/something");
-
-assert_eq!(Some("https://httpstatuses.com/428".to_string()), p.type_url);
-assert_eq!(Some(HttpStatusCode::PreconditionRequired), p.status);
-assert_eq!("Precondition Required".to_string(), p.title);
-assert_eq!(Some("detailed explanation".to_string()), p.detail);
-assert_eq!(Some("/on/1234/do/something".to_string()), p.instance);
+assert_eq!(Some(StatusCode::UNPROCESSABLE_ENTITY), p.status);
+assert_eq!(Some("You do not have enough credit."), p.title.as_deref());
+assert_eq!(Some("Your current balance is 30, but that costs 50."), p.detail.as_deref());
+assert_eq!(Some("https://example.com/probs/out-of-credit"), p.type_url.as_deref());
+assert_eq!(Some("/account/12345/msgs/abc"), p.instance.as_deref());
 ```
 
 ## Features
@@ -61,6 +63,7 @@ There are multiple features to integrate with web frameworks:
 * `hyper`
 * `actix-web`
 * `salvo`
+* `tide`
 
 These mainly convert the `HttpApiProblem` to response types of
 the frameworks and implement traits to integrate with the frameworks
