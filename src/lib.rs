@@ -819,7 +819,10 @@ impl From<HttpApiProblem> for tide::Response {
 
 mod custom_http_status_serialization {
     use http::StatusCode;
-    use serde::{Deserialize, Deserializer, Serializer};
+    use serde::{
+        de::{Error, Unexpected},
+        Deserialize, Deserializer, Serializer,
+    };
     use std::convert::TryFrom;
 
     pub fn serialize<S>(status: &Option<StatusCode>, s: S) -> Result<S::Ok, S::Error>
@@ -836,16 +839,55 @@ mod custom_http_status_serialization {
     where
         D: Deserializer<'de>,
     {
-        let s: Option<u16> = Option::deserialize(deserializer)?;
-        if let Some(numeric_status_code) = s {
-            // If the status code numeral is invalid we simply have none...
-            let status_code = StatusCode::try_from(numeric_status_code).ok();
-            return Ok(status_code);
-        }
+        let status_code = Option::<u16>::deserialize(deserializer)?;
 
-        Ok(None)
+        if let Some(status_code) = status_code {
+            StatusCode::try_from(status_code).map(Some).map_err(|_| {
+                Error::invalid_value(
+                    Unexpected::Unsigned(status_code as u64),
+                    &"a valid HTTP status code",
+                )
+            })
+        } else {
+            Ok(None)
+        }
     }
 }
 
 #[cfg(test)]
-mod test;
+mod test {
+    use super::*;
+
+    #[derive(Debug, Serialize, Deserialize)]
+    struct StatusCodeTest {
+        #[serde(with = "custom_http_status_serialization")]
+        status_code: Option<StatusCode>,
+    }
+
+    #[test]
+    fn deserializes_valid_status_code_successfully() {
+        let json = r#"{"status_code":422}"#;
+
+        let result = serde_json::from_str::<StatusCodeTest>(json).unwrap();
+
+        assert_eq!(result.status_code, Some(StatusCode::UNPROCESSABLE_ENTITY));
+    }
+
+    #[test]
+    fn deserializes_none_status_code_successfully() {
+        let json = r#"{"status_code":null}"#;
+
+        let result = serde_json::from_str::<StatusCodeTest>(json).unwrap();
+
+        assert_eq!(result.status_code, None);
+    }
+
+    #[test]
+    fn deserializes_invalid_status_code_successfully() {
+        let json = r#"{"status_code":2000}"#;
+
+        let result = serde_json::from_str::<StatusCodeTest>(json);
+
+        assert!(result.is_err());
+    }
+}
