@@ -148,6 +148,12 @@ pub static PROBLEM_JSON_MEDIA_TYPE: &str = "application/problem+json";
 /// set and a transformation to a response of a web framework
 /// is made a [StatusCode] becomes mandatory which in this case will
 /// default to `500`.
+///
+/// When receiving an [HttpApiProblem] there might be an invalid
+/// [StatusCode] contained. In this case the `status` field will be empty.
+/// This is a trade off so that the recipient does not have to deal with
+/// another error and can still have access to the remaining fields of the
+/// struct.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct HttpApiProblem {
@@ -838,7 +844,11 @@ mod custom_http_status_serialization {
     {
         let s: Option<u16> = Option::deserialize(deserializer)?;
         if let Some(numeric_status_code) = s {
-            // If the status code numeral is invalid we simply have none...
+            // If the status code numeral is invalid we simply return None.
+            // This is a trade off to guarantee that the client can still
+            // have access to the rest of the problem struct instead of
+            // having to deal with an error caused by trying to deserialize an invalid status
+            // code. Additionally the received response still contains a status code.
             let status_code = StatusCode::try_from(numeric_status_code).ok();
             return Ok(status_code);
         }
