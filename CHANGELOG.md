@@ -4,7 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.50.0] - unreleased
+## [0.50.1] - 2021-04-16
+
+### CHANGED
+
+- improved documentation on deserialization of invalid status codes
+## [0.50.0] - 2021-04-13
 
 This release contains multiple breaking changes
 
