@@ -216,7 +216,7 @@ impl ApiError {
     }
 
     /// Get the [StatusCode].
-    pub fn status<T: Into<StatusCode>>(&self) -> StatusCode {
+    pub fn status(&self) -> StatusCode {
         self.status
     }
 
