@@ -1,6 +1,6 @@
 [package]
 name = "http-api-problem"
-version = "0.50.1"
+version = "0.50.2"
 authors = ["Christian Douven <chridou@users.noreply.github.com>"]
 description = "A library to create HTTP error response content for APIs based on RFC 7807"
 repository = "https://github.com/chridou/http-api-problem"
@@ -18,9 +18,9 @@ serde_json = { version = "1.0" }
 http = { version = "0.2" }
 hyper = { version = "0.14", optional = true }
 actix-web-crate = { package = "actix-web", version = "3", optional = true }
-actix = { version = "0.11", optional = true }
+actix = { version = "0.12", optional = true }
 warp = { version = "0.3", optional = true, default-features = false }
-salvo = { version = "0.10", optional = true, default-features = false }
+salvo = { version = "0.11", optional = true, default-features = false }
 tide = { version = "0.16", optional = true, default-features = false }
 
 [features]
