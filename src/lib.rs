@@ -82,6 +82,7 @@
 //! * `actix-web`
 //! * `salvo`
 //! * `tide`
+//! * `rocket (v0.5.0-rc1)`
 //!
 //! These mainly convert the `HttpApiProblem` to response types of
 //! the frameworks and implement traits to integrate with the frameworks
@@ -626,6 +627,32 @@ impl HttpApiProblem {
             .body(json)
     }
 
+    /// Creates a `rocket` response.
+    ///
+    /// If status is `None` `500 - Internal Server Error` is the
+    /// default.
+    ///
+    /// Requires the `rocket` feature
+    #[cfg(feature = "rocket")]
+    pub fn to_rocket_response(&self) -> rocket::Response<'static> {
+        use rocket::http::ContentType;
+        use rocket::http::Status;
+        use rocket::Response;
+        use std::io::Cursor;
+
+        let content_type: ContentType = PROBLEM_JSON_MEDIA_TYPE.parse().unwrap();
+        let json = self.json_bytes();
+        let response = Response::build()
+            .status(Status {
+                code: self.status_code_or_internal_server_error().into(),
+            })
+            .sized_body(json.len(), Cursor::new(json))
+            .header(content_type)
+            .finalize();
+
+        response
+    }
+
     /// Creates a [salvo] response.
     ///
     /// If status is `None` `500 - Internal Server Error` is the
@@ -781,6 +808,31 @@ pub fn into_actix_response<T: Into<HttpApiProblem>>(what: T) -> actix_web::HttpR
 impl From<HttpApiProblem> for actix_web::HttpResponse {
     fn from(problem: HttpApiProblem) -> actix_web::HttpResponse {
         problem.to_actix_response()
+    }
+}
+
+/// Creates an `rocket::Response` from something that can become an
+/// `HttpApiProblem`.
+///
+/// If status is `None` `500 - Internal Server Error` is the
+/// default.
+#[cfg(feature = "rocket")]
+pub fn into_rocket_response<T: Into<HttpApiProblem>>(what: T) -> ::rocket::Response<'static> {
+    let problem: HttpApiProblem = what.into();
+    problem.to_rocket_response()
+}
+
+#[cfg(feature = "rocket")]
+impl From<HttpApiProblem> for ::rocket::Response<'static> {
+    fn from(problem: HttpApiProblem) -> ::rocket::Response<'static> {
+        problem.to_rocket_response()
+    }
+}
+
+#[cfg(feature = "rocket")]
+impl<'r> ::rocket::response::Responder<'r, 'static> for HttpApiProblem {
+    fn respond_to(self, _request: &::rocket::Request) -> ::rocket::response::Result<'static> {
+        Ok(self.into())
     }
 }
 
