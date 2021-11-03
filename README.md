@@ -64,6 +64,7 @@ There are multiple features to integrate with web frameworks:
 * `actix-web`
 * `salvo`
 * `tide`
+* `rocket`
 
 These mainly convert the `HttpApiProblem` to response types of
 the frameworks and implement traits to integrate with the frameworks
@@ -76,6 +77,7 @@ return from "api handlers" that generate responses and can be
 converted into an `HttpApiProblem`.
 
 ## Thank you
+
 A big "thank you" for contributions and inspirations goes to the
 following GitHub users:
 
