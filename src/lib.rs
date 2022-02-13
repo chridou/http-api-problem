@@ -679,7 +679,7 @@ impl HttpApiProblem {
         );
         parts.status = self.status_or_internal_server_error();
 
-        salvo::Response::from_hyper(Response::from_parts(parts, body))
+        Response::from_parts(parts, body).into()
     }
 
     /// Creates a [tide] response.
