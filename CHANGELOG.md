@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### CHANGED
 
 - bump salvo dependency to 0.16
+- bump actix-web dependency to 4
+- bump actix dependency to 0.13
 
 ## [0.51.0] - 2021-11-03
 
