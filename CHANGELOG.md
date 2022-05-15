@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - bump salvo dependency to 0.16
 - bump actix-web dependency to 4
 - bump actix dependency to 0.13
+- Updated MSRV to 1.60
 
 ## [0.51.0] - 2021-11-03
 
