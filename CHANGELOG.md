@@ -4,11 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.52.0] - unreleased
+## [0.52.0] - 2022-05-15
 
 ### CHANGED
 
-- bump salvo dependency to 0.16
+- bump salvo dependency to 0.23
 - bump actix-web dependency to 4
 - bump actix dependency to 0.13
 - Updated MSRV to 1.60
