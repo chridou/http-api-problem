@@ -620,10 +620,10 @@ impl HttpApiProblem {
         let json = self.json_bytes();
 
         actix_web::HttpResponse::build(actix_status)
-            .append_header(
-                (actix_web::http::header::CONTENT_TYPE,
-                PROBLEM_JSON_MEDIA_TYPE),
-            )
+            .append_header((
+                actix_web::http::header::CONTENT_TYPE,
+                PROBLEM_JSON_MEDIA_TYPE,
+            ))
             .body(json)
     }
 

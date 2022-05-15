@@ -507,10 +507,10 @@ impl actix_web::error::ResponseError for ApiError {
             .unwrap_or(actix_web::http::StatusCode::INTERNAL_SERVER_ERROR);
 
         actix_web::HttpResponse::build(actix_status)
-            .append_header(
-                (actix_web::http::header::CONTENT_TYPE,
-                PROBLEM_JSON_MEDIA_TYPE)
-            )
+            .append_header((
+                actix_web::http::header::CONTENT_TYPE,
+                PROBLEM_JSON_MEDIA_TYPE,
+            ))
             .body(json)
     }
 }
