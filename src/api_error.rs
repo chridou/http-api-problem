@@ -14,6 +14,7 @@ use serde::Serialize;
 use serde_json::Value;
 
 use super::*;
+pub use derive_into_api_error::IntoApiError;
 
 pub struct ApiErrorBuilder {
     /// The suggested status code for the server to be returned to the client
@@ -464,6 +465,16 @@ impl From<io::Error> for ApiError {
             .title("An IO error occurred")
             .source(error)
             .finish()
+    }
+}
+
+pub trait IntoApiError {
+    fn into_api_error(self) -> ApiError;
+}
+
+impl<T: IntoApiError> From<T> for ApiError {
+    fn from(t: T) -> ApiError {
+        t.into_api_error()
     }
 }
 
