@@ -83,6 +83,7 @@ following GitHub users:
 
 * panicbit
 * thomaseizinger
+* SohumB
 
 ## License
 

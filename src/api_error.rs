@@ -14,7 +14,7 @@ use serde::Serialize;
 use serde_json::Value;
 
 use super::*;
-pub use derive_into_api_error::IntoApiError;
+pub use http_api_problem_derive::IntoApiError;
 
 pub struct ApiErrorBuilder {
     /// The suggested status code for the server to be returned to the client
