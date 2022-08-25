@@ -347,8 +347,8 @@ impl ApiError {
         &self.fields
     }
 
-   /// Returns a mutable reference to the serialized fields
-   pub fn fields_mut(&mut self) -> &mut HashMap<String, Value> {
+    /// Returns a mutable reference to the serialized fields
+    pub fn fields_mut(&mut self) -> &mut HashMap<String, Value> {
         &mut self.fields
     }
 
