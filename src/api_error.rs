@@ -333,9 +333,21 @@ impl ApiError {
         name: T,
         value: V,
     ) -> Result<(), Box<dyn Error + 'static>> {
+
+        let name: String = name.into();
+
+        match name.as_ref() {
+            "type" => return Err("'type' is a reserved field name".into()),
+            "status" => return Err("'status' is a reserved field name".into()),
+            "title" => return Err("'title' is a reserved field name".into()),
+            "detail" => return Err("'detail' is a reserved field name".into()),
+            "instance" => return Err("'instance' is a reserved field name".into()),
+            _ => (),
+        }
+ 
         match serde_json::to_value(value) {
             Ok(value) => {
-                self.fields.insert(name.into(), value);
+                self.fields.insert(name, value);
                 Ok(())
             }
             Err(err) => Err(Box::new(err)),
