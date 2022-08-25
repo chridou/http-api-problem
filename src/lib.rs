@@ -114,6 +114,7 @@ use std::error::Error;
 use std::fmt;
 
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde_json::Value;
 use std::collections::HashMap;
 
 #[cfg(feature = "api-error")]
@@ -583,6 +584,16 @@ impl HttpApiProblem {
         let serialized = serde_json::to_value(value).map_err(|err| err.to_string())?;
         self.additional_fields.insert(key, serialized);
         Ok(())
+    }
+
+    /// Returns a reference to the serialized fields
+    pub fn additional_fields(&self) -> &HashMap<String, Value> {
+        &self.additional_fields
+    }
+
+    /// Returns a mutable reference to the serialized fields
+    pub fn additional_fields_mut(&mut self) -> &mut HashMap<String, Value> {
+        &mut self.additional_fields
     }
 
     pub fn keys<K, V>(&self) -> impl Iterator<Item = &String>
