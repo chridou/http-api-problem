@@ -113,6 +113,13 @@ impl ApiErrorBuilder {
         self
     }
 
+    /// Modify the fields values from within a closure
+    pub fn with_fields<F>(mut self, f: F) -> Self where F: FnOnce(HashMap<String, Value>) -> HashMap<String, Value> {
+        self.fields = f(self.fields);
+
+        self
+    }
+
     /// Adds an extension value.
     ///
     /// Existing values will be overwritten
