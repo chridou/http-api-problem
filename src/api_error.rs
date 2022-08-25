@@ -46,7 +46,7 @@ pub struct ApiErrorBuilder {
     /// 
     /// Can be used e.g. for middlewares
     /// 
-    /// Extensions will not be part of an [HttpApiProlem]
+    /// Extensions will not be part of an [HttpApiProblem]
     pub extensions: Extensions,
 
     pub source: Option<Box<dyn Error + Send + Sync + 'static>>,
@@ -117,7 +117,7 @@ impl ApiErrorBuilder {
     ///
     /// Existing values will be overwritten
     /// 
-    /// Extensions will not be part of an [HttpApiProlem]
+    /// Extensions will not be part of an [HttpApiProblem]
     pub fn extension<T: Send + Sync + 'static>(mut self, val: T) -> Self {
         let _ = self.extensions.insert(val);
 
@@ -126,7 +126,7 @@ impl ApiErrorBuilder {
 
     /// Modify the extension values from within a closure
     /// 
-    /// Extensions will not be part of an [HttpApiProlem]
+    /// Extensions will not be part of an [HttpApiProblem]
     pub fn with_extensions<F>(mut self, f: F) -> Self where F: FnOnce(Extensions) -> Extensions {
         self.extensions = f(self.extensions);
 
@@ -347,14 +347,14 @@ impl ApiError {
 
     /// Get a reference to the extensions
     /// 
-    /// Extensions will not be part of an [HttpApiProlem]
+    /// Extensions will not be part of an [HttpApiProblem]
     pub fn extensions(&self) -> &Extensions {
         &self.extensions
     }
 
     /// Get a mutable reference to the extensions
     /// 
-    /// Extensions will not be part of an [HttpApiProlem]
+    /// Extensions will not be part of an [HttpApiProblem]
     pub fn extensions_mut(&mut self) -> &mut Extensions {
         &mut self.extensions
     }
