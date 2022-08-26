@@ -43,9 +43,9 @@ pub struct ApiErrorBuilder {
     pub fields: HashMap<String, Value>,
 
     /// Typed extensions for carrying processable data server side
-    /// 
+    ///
     /// Can be used e.g. for middlewares
-    /// 
+    ///
     /// Extensions will not be part of an [HttpApiProblem]
     pub extensions: Extensions,
 
@@ -114,7 +114,10 @@ impl ApiErrorBuilder {
     }
 
     /// Modify the fields values from within a closure
-    pub fn with_fields<F>(mut self, f: F) -> Self where F: FnOnce(HashMap<String, Value>) -> HashMap<String, Value> {
+    pub fn with_fields<F>(mut self, f: F) -> Self
+    where
+        F: FnOnce(HashMap<String, Value>) -> HashMap<String, Value>,
+    {
         self.fields = f(self.fields);
 
         self
@@ -123,7 +126,7 @@ impl ApiErrorBuilder {
     /// Adds an extension value.
     ///
     /// Existing values will be overwritten
-    /// 
+    ///
     /// Extensions will not be part of an [HttpApiProblem]
     pub fn extension<T: Send + Sync + 'static>(mut self, val: T) -> Self {
         let _ = self.extensions.insert(val);
@@ -132,9 +135,12 @@ impl ApiErrorBuilder {
     }
 
     /// Modify the extension values from within a closure
-    /// 
+    ///
     /// Extensions will not be part of an [HttpApiProblem]
-    pub fn with_extensions<F>(mut self, f: F) -> Self where F: FnOnce(Extensions) -> Extensions {
+    pub fn with_extensions<F>(mut self, f: F) -> Self
+    where
+        F: FnOnce(Extensions) -> Extensions,
+    {
         self.extensions = f(self.extensions);
 
         self
@@ -333,7 +339,6 @@ impl ApiError {
         name: T,
         value: V,
     ) -> Result<(), Box<dyn Error + 'static>> {
-
         let name: String = name.into();
 
         match name.as_ref() {
@@ -344,7 +349,7 @@ impl ApiError {
             "instance" => return Err("'instance' is a reserved field name".into()),
             _ => (),
         }
- 
+
         match serde_json::to_value(value) {
             Ok(value) => {
                 self.fields.insert(name, value);
@@ -365,14 +370,14 @@ impl ApiError {
     }
 
     /// Get a reference to the extensions
-    /// 
+    ///
     /// Extensions will not be part of an [HttpApiProblem]
     pub fn extensions(&self) -> &Extensions {
         &self.extensions
     }
 
     /// Get a mutable reference to the extensions
-    /// 
+    ///
     /// Extensions will not be part of an [HttpApiProblem]
     pub fn extensions_mut(&mut self) -> &mut Extensions {
         &mut self.extensions
