@@ -1,8 +1,12 @@
-//! An error that should be returned from an Http API handler
+//! An error that should be returned from an HTTP API handler.
+//!
+//! It is able to carry typed data via [Extensions] to be used
+//! in middlewares. These values will not become part of any response.
 //!
 //! # Things to know
 //!
-//! `ApiError` can be converted to a `HttpApiProblem`
+//! [ApiError] can be converted to an [HttpApiProblem] and
+//! also has many conversions to responses of web framewors implemented.
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fmt::{self, Display};

@@ -155,6 +155,16 @@ pub static PROBLEM_JSON_MEDIA_TYPE: &str = "application/problem+json";
 /// }
 /// ```
 ///
+/// # Purpose
+///
+/// The purpose of [HttpApiProblem] is to generate a meaningful response
+/// for clients. It is not intended to be used as a replacement
+/// for a proper `Error` struct within applications.
+///
+/// For a struct which can be returned by HTTP handlers use [ApiError] which
+/// can be enabled with the feature toggle `api-error`. [ApiError] can be directly
+/// converted into [HttpApiProblem].
+///
 /// # Status Codes and Responses
 ///
 /// Prefer to use one of the constructors which
