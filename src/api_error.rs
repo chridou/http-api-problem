@@ -1,8 +1,12 @@
-//! An error that should be returned from an Http API handler
+//! An error that should be returned from an HTTP API handler.
+//!
+//! It is able to carry typed data via [Extensions] to be used
+//! in middlewares. These values will not become part of any response.
 //!
 //! # Things to know
 //!
-//! `ApiError` can be converted to a `HttpApiProblem`
+//! [ApiError] can be converted to an [HttpApiProblem] and
+//! also has many conversions to responses of web framewors implemented.
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fmt::{self, Display};
@@ -10,6 +14,7 @@ use std::io;
 
 use std::error::Error;
 
+use http::Extensions;
 use serde::Serialize;
 use serde_json::Value;
 
@@ -40,6 +45,13 @@ pub struct ApiErrorBuilder {
     /// Additional JSON encodable information. It is up to the server how and if
     /// it adds the given information.
     pub fields: HashMap<String, Value>,
+
+    /// Typed extensions for carrying processable data server side
+    ///
+    /// Can be used e.g. for middlewares
+    ///
+    /// Extensions will not be part of an [HttpApiProblem]
+    pub extensions: Extensions,
 
     pub source: Option<Box<dyn Error + Send + Sync + 'static>>,
 }
@@ -105,6 +117,39 @@ impl ApiErrorBuilder {
         self
     }
 
+    /// Modify the fields values from within a closure
+    pub fn with_fields<F>(mut self, f: F) -> Self
+    where
+        F: FnOnce(HashMap<String, Value>) -> HashMap<String, Value>,
+    {
+        self.fields = f(self.fields);
+
+        self
+    }
+
+    /// Adds an extension value.
+    ///
+    /// Existing values will be overwritten
+    ///
+    /// Extensions will not be part of an [HttpApiProblem]
+    pub fn extension<T: Send + Sync + 'static>(mut self, val: T) -> Self {
+        let _ = self.extensions.insert(val);
+
+        self
+    }
+
+    /// Modify the extension values from within a closure
+    ///
+    /// Extensions will not be part of an [HttpApiProblem]
+    pub fn with_extensions<F>(mut self, f: F) -> Self
+    where
+        F: FnOnce(Extensions) -> Extensions,
+    {
+        self.extensions = f(self.extensions);
+
+        self
+    }
+
     pub fn source<E: Error + Send + Sync + 'static>(self, source: E) -> Self {
         self.source_in_a_box(Box::new(source))
     }
@@ -126,6 +171,7 @@ impl ApiErrorBuilder {
             type_url: self.type_url,
             instance: self.instance,
             fields: self.fields,
+            extensions: self.extensions,
             source: self.source,
         }
     }
@@ -157,6 +203,7 @@ pub struct ApiError {
     instance: Option<String>,
     type_url: Option<String>,
     fields: HashMap<String, Value>,
+    extensions: Extensions,
     source: Option<Box<dyn Error + Send + Sync + 'static>>,
 }
 
@@ -171,6 +218,7 @@ impl ApiError {
             instance: None,
             fields: HashMap::default(),
             source: None,
+            extensions: Extensions::default(),
         }
     }
 
@@ -196,6 +244,7 @@ impl ApiError {
             type_url: None,
             instance: None,
             fields: HashMap::new(),
+            extensions: Extensions::default(),
             source: None,
         }
     }
@@ -294,13 +343,48 @@ impl ApiError {
         name: T,
         value: V,
     ) -> Result<(), Box<dyn Error + 'static>> {
+        let name: String = name.into();
+
+        match name.as_ref() {
+            "type" => return Err("'type' is a reserved field name".into()),
+            "status" => return Err("'status' is a reserved field name".into()),
+            "title" => return Err("'title' is a reserved field name".into()),
+            "detail" => return Err("'detail' is a reserved field name".into()),
+            "instance" => return Err("'instance' is a reserved field name".into()),
+            _ => (),
+        }
+
         match serde_json::to_value(value) {
             Ok(value) => {
-                self.fields.insert(name.into(), value);
+                self.fields.insert(name, value);
                 Ok(())
             }
             Err(err) => Err(Box::new(err)),
         }
+    }
+
+    /// Returns a reference to the serialized fields
+    pub fn fields(&self) -> &HashMap<String, Value> {
+        &self.fields
+    }
+
+    /// Returns a mutable reference to the serialized fields
+    pub fn fields_mut(&mut self) -> &mut HashMap<String, Value> {
+        &mut self.fields
+    }
+
+    /// Get a reference to the extensions
+    ///
+    /// Extensions will not be part of an [HttpApiProblem]
+    pub fn extensions(&self) -> &Extensions {
+        &self.extensions
+    }
+
+    /// Get a mutable reference to the extensions
+    ///
+    /// Extensions will not be part of an [HttpApiProblem]
+    pub fn extensions_mut(&mut self) -> &mut Extensions {
+        &mut self.extensions
     }
 
     /// Creates an [HttpApiProblem] from this.
@@ -321,7 +405,7 @@ impl ApiError {
 
         if self.status != StatusCode::UNAUTHORIZED {
             for (key, value) in self.fields.iter() {
-                let _ = problem.set_value(key.to_string(), value);
+                problem.set_value(key.to_string(), value);
             }
         }
 
@@ -353,7 +437,7 @@ impl ApiError {
 
         if self.status != StatusCode::UNAUTHORIZED {
             for (key, value) in self.fields.iter() {
-                let _ = problem.set_value(key.to_string(), value);
+                problem.set_value(key.to_string(), value);
             }
         }
 
