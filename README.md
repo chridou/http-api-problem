@@ -59,6 +59,7 @@ assert_eq!(Some("/account/12345/msgs/abc"), p.instance.as_deref());
 
 There are multiple features to integrate with web frameworks:
 
++ `axum`
 * `warp`
 * `hyper`
 * `actix-web`

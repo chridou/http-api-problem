@@ -9,6 +9,7 @@ jobs:
         features:
           [
             "--no-default-features",
+            "--features axum",
             "--features hyper",
             "--features actix-web",
             "--features warp",
@@ -16,6 +17,7 @@ jobs:
             "--features tide",
             "--features rocket",
             "--features api-error",
+            "--features 'axum api-error'",
             "--features 'hyper api-error'",
             "--features 'actix-web api-error'",
             "--features 'warp api-error'",

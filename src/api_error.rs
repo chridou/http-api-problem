@@ -468,6 +468,15 @@ impl ApiError {
         problem.to_hyper_response()
     }
 
+    /// Creates an axum [Response](axum_core::response::response) containing a problem JSON.
+    ///
+    /// Requires the `axum` feature
+    #[cfg(feature = "axum")]
+    pub fn into_axum_response(self) -> axum_core::response::Response {
+        let problem = self.into_http_api_problem();
+        problem.to_axum_response()
+    }
+
     /// Creates a `actix-web` response containing a problem JSON.
     ///
     /// Requires the `actix.web` feature
@@ -575,6 +584,20 @@ impl From<hyper::Error> for ApiError {
 impl From<ApiError> for hyper::Response<hyper::Body> {
     fn from(error: ApiError) -> hyper::Response<hyper::Body> {
         error.into_hyper_response()
+    }
+}
+
+#[cfg(feature = "axum")]
+impl From<ApiError> for axum_core::response::Response {
+    fn from(error: ApiError) -> axum_core::response::Response {
+        error.into_axum_response()
+    }
+}
+
+#[cfg(feature = "axum")]
+impl axum_core::response::IntoResponse for ApiError {
+    fn into_response(self) -> axum_core::response::Response {
+        self.into()
     }
 }
 

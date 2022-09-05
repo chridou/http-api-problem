@@ -82,6 +82,7 @@
 //!
 //! There are multiple features to integrate with web frameworks:
 //!
+//! * `axum`
 //! * `warp`
 //! * `hyper`
 //! * `actix-web`
@@ -133,6 +134,9 @@ use actix_web_crate as actix_web;
 
 #[cfg(feature = "salvo")]
 use salvo;
+
+#[cfg(feature = "axum")]
+use axum_core;
 
 pub use http::status::{InvalidStatusCode, StatusCode};
 
@@ -691,6 +695,39 @@ impl HttpApiProblem {
         Response::from_parts(parts, body)
     }
 
+    /// Creates an axum [Response](axum_core::response::Response).
+    ///
+    /// If status is `None` `500 - Internal Server Error` is the
+    /// default.
+    ///
+    /// Requires the `axum` feature
+    #[cfg(feature = "axum")]
+    pub fn to_axum_response(&self) -> axum_core::response::Response {
+        use axum_core::response::IntoResponse;
+        use http::header::{HeaderValue, CONTENT_LENGTH, CONTENT_TYPE};
+
+        let json = self.json_bytes();
+        let length = json.len() as u64;
+
+        let status = self.status_or_internal_server_error();
+
+        
+        let mut response = (status, json).into_response();
+
+        *response.status_mut() = self.status_or_internal_server_error();
+
+        response.headers_mut().insert(
+            CONTENT_TYPE,
+            HeaderValue::from_static(PROBLEM_JSON_MEDIA_TYPE),
+        );
+        response.headers_mut().insert(
+            CONTENT_LENGTH,
+            HeaderValue::from_str(&length.to_string()).unwrap(),
+        );
+
+        response
+    }
+
     /// Creates an `actix` response.
     ///
     /// If status is `None` or not convertible
@@ -787,10 +824,12 @@ impl HttpApiProblem {
             .build()
     }
 
+    #[allow(dead_code)]
     fn status_or_internal_server_error(&self) -> StatusCode {
         self.status.unwrap_or(StatusCode::INTERNAL_SERVER_ERROR)
     }
 
+    #[allow(dead_code)]
     fn status_code_or_internal_server_error(&self) -> u16 {
         self.status_or_internal_server_error().as_u16()
     }
@@ -873,10 +912,24 @@ pub fn into_hyper_response<T: Into<HttpApiProblem>>(what: T) -> hyper::Response<
     problem.to_hyper_response()
 }
 
-#[cfg(feature = "hyper")]
-impl From<HttpApiProblem> for hyper::Response<hyper::Body> {
-    fn from(problem: HttpApiProblem) -> hyper::Response<hyper::Body> {
-        problem.to_hyper_response()
+/// Creates an axum [Response](axum_core::response::Response) from something that can become an
+/// `HttpApiProblem`.
+///
+/// If status is `None` `500 - Internal Server Error` is the
+/// default.
+///
+/// Requires the `axum` feature
+#[cfg(feature = "axum")]
+impl From<HttpApiProblem> for axum_core::response::Response {
+    fn from(problem: HttpApiProblem) -> axum_core::response::Response {
+        problem.to_axum_response()
+    }
+}
+
+#[cfg(feature = "axum")]
+impl axum_core::response::IntoResponse for HttpApiProblem {
+    fn into_response(self) -> axum_core::response::Response {
+        self.into()
     }
 }
 
