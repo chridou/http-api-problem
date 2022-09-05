@@ -711,7 +711,6 @@ impl HttpApiProblem {
 
         let status = self.status_or_internal_server_error();
 
-        
         let mut response = (status, json).into_response();
 
         *response.status_mut() = self.status_or_internal_server_error();
