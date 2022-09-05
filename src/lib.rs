@@ -911,6 +911,13 @@ pub fn into_hyper_response<T: Into<HttpApiProblem>>(what: T) -> hyper::Response<
     problem.to_hyper_response()
 }
 
+#[cfg(feature = "hyper")]
+impl From<HttpApiProblem> for hyper::Response<hyper::Body> {
+    fn from(problem: HttpApiProblem) -> hyper::Response<hyper::Body> {
+        problem.to_hyper_response()
+    }
+}
+
 /// Creates an axum [Response](axum_core::response::Response) from something that can become an
 /// `HttpApiProblem`.
 ///
@@ -918,6 +925,12 @@ pub fn into_hyper_response<T: Into<HttpApiProblem>>(what: T) -> hyper::Response<
 /// default.
 ///
 /// Requires the `axum` feature
+#[cfg(feature = "axum")]
+pub fn into_axum_response<T: Into<HttpApiProblem>>(what: T) -> axum_core::response::Response {
+    let problem: HttpApiProblem = what.into();
+    problem.to_axum_response()
+}
+
 #[cfg(feature = "axum")]
 impl From<HttpApiProblem> for axum_core::response::Response {
     fn from(problem: HttpApiProblem) -> axum_core::response::Response {
