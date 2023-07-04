@@ -899,6 +899,12 @@ impl From<StatusCode> for HttpApiProblem {
     }
 }
 
+impl From<std::convert::Infallible> for HttpApiProblem {
+    fn from(error: std::convert::Infallible) -> HttpApiProblem {
+        match error {}
+    }
+}
+
 /// Creates an [hyper::Response] from something that can become an
 /// `HttpApiProblem`.
 ///

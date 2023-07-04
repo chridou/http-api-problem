@@ -561,6 +561,12 @@ impl From<io::Error> for ApiError {
     }
 }
 
+impl From<std::convert::Infallible> for ApiError {
+    fn from(error: std::convert::Infallible) -> Self {
+        match error {}
+    }
+}
+
 pub trait IntoApiError {
     fn into_api_error(self) -> ApiError;
 }
