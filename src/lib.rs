@@ -182,8 +182,7 @@ pub static PROBLEM_JSON_MEDIA_TYPE: &str = "application/problem+json";
 /// This is a trade off so that the recipient does not have to deal with
 /// another error and can still have access to the remaining fields of the
 /// struct.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(test, derive(PartialEq, Eq))]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[cfg_attr(feature = "json-schema", derive(JsonSchema))]
 #[cfg_attr(
     feature = "json-schema",
