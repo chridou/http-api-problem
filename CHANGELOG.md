@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - provide `PartialEq` and `Eq` derives for the `HttpApiProblem` struct  
 Previously, it was only available in the test profiles
 
+### ADDED
+
+- conversions from std::convert::Inallible
+
 ## [0.56.0] - 2022-11-25
 
 ### CHANGED
