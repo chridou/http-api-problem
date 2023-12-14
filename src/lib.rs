@@ -689,7 +689,11 @@ impl HttpApiProblem {
             CONTENT_LENGTH,
             HeaderValue::from_str(&length.to_string()).unwrap(),
         );
-        parts.status = self.status_or_internal_server_error();
+        parts.status = self
+            .status_or_internal_server_error()
+            .as_u16()
+            .try_into()
+            .unwrap_or(hyper::StatusCode::INTERNAL_SERVER_ERROR);
 
         Response::from_parts(parts, body)
     }
@@ -799,7 +803,11 @@ impl HttpApiProblem {
             CONTENT_LENGTH,
             HeaderValue::from_str(&length.to_string()).unwrap(),
         );
-        parts.status = self.status_or_internal_server_error();
+        parts.status = self
+            .status_or_internal_server_error()
+            .as_u16()
+            .try_into()
+            .unwrap_or(hyper::StatusCode::INTERNAL_SERVER_ERROR);
 
         Response::from_parts(parts, body).into()
     }

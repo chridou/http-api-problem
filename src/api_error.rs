@@ -132,7 +132,7 @@ impl ApiErrorBuilder {
     /// Existing values will be overwritten
     ///
     /// Extensions will not be part of an [HttpApiProblem]
-    pub fn extension<T: Send + Sync + 'static>(mut self, val: T) -> Self {
+    pub fn extension<T: Send + Sync + Clone + 'static>(mut self, val: T) -> Self {
         let _ = self.extensions.insert(val);
 
         self

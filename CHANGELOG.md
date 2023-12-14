@@ -4,11 +4,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.58.0] - 2023-12-14
+
+### CHANGED
+
+- update `http` to 1.0
+- update `axum-core` to 0.4.1
+
 ## [0.57.0] - 2023-07-04
 
 ### CHANGED
 
-- provide `PartialEq` and `Eq` derives for the `HttpApiProblem` struct  
+- provide `PartialEq` and `Eq` derives for the `HttpApiProblem` struct
 Previously, it was only available in the test profiles
 
 ### ADDED
@@ -57,7 +64,7 @@ Previously, it was only available in the test profiles
 
 - rocket support
 
-### CHANGED 
+### CHANGED
 
 - MSRV 1.46 (warp only)
 
