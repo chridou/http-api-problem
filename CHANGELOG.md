@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - update `http` to 1.0
 - update `axum-core` to 0.4.1
+- update MSRV to 1.68
 
 ## [0.57.0] - 2023-07-04
 
