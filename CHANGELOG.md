@@ -8,7 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### CHANGED
 
-- update `hyper` to 1.4.0
+- update `hyper` to 1.0
+- update `salvo` to 0.68.0
+- use rust 2021
 
 
 ## [0.58.0] - 2023-12-14

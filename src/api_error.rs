@@ -394,14 +394,14 @@ impl ApiError {
     pub fn to_http_api_problem(&self) -> HttpApiProblem {
         let mut problem = HttpApiProblem::with_title_and_type(self.status);
 
-        problem.title = self.title.clone();
+        problem.title.clone_from(&self.title);
 
         if let Some(message) = self.detail_message() {
             problem.detail = Some(message.into())
         }
 
-        problem.type_url = self.type_url.clone();
-        problem.instance = self.instance.clone();
+        problem.type_url.clone_from(&self.type_url);
+        problem.instance.clone_from(&self.instance);
 
         if self.status != StatusCode::UNAUTHORIZED {
             for (key, value) in self.fields.iter() {
@@ -463,7 +463,7 @@ impl ApiError {
     ///
     /// Requires the `hyper` feature
     #[cfg(feature = "hyper")]
-    pub fn into_hyper_response(self) -> hyper::Response<hyper::Body> {
+    pub fn into_hyper_response(self) -> hyper::Response<String> {
         let problem = self.into_http_api_problem();
         problem.to_hyper_response()
     }
@@ -587,8 +587,8 @@ impl From<hyper::Error> for ApiError {
 }
 
 #[cfg(feature = "hyper")]
-impl From<ApiError> for hyper::Response<hyper::Body> {
-    fn from(error: ApiError) -> hyper::Response<hyper::Body> {
+impl From<ApiError> for hyper::Response<String> {
+    fn from(error: ApiError) -> hyper::Response<String> {
         error.into_hyper_response()
     }
 }
