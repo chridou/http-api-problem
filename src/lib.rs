@@ -129,9 +129,6 @@ use schemars::JsonSchema;
 #[cfg(feature = "actix-web")]
 use actix_web_crate as actix_web;
 
-#[cfg(feature = "salvo")]
-use salvo;
-
 #[cfg(feature = "axum")]
 use axum_core;
 
@@ -659,7 +656,7 @@ impl HttpApiProblem {
 
     /// Serialize to a JSON `String`
     pub fn json_string(&self) -> String {
-        serde_json::to_string(self).unwrap()
+        serde_json::to_string_pretty(self).unwrap()
     }
 
     /// Creates a [hyper] response.
@@ -787,10 +784,10 @@ impl HttpApiProblem {
         use salvo::hyper::header::{HeaderValue, CONTENT_LENGTH, CONTENT_TYPE};
         use salvo::hyper::*;
 
-        let json = self.json_bytes();
+        let json = self.json_string();
         let length = json.len() as u64;
 
-        let (mut parts, body) = Response::new(json.into()).into_parts();
+        let (mut parts, body) = Response::new(json).into_parts();
 
         parts.headers.insert(
             CONTENT_TYPE,
