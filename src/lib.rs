@@ -126,14 +126,8 @@ pub use api_error::*;
 #[cfg(feature = "json-schema")]
 use schemars::JsonSchema;
 
-#[cfg(feature = "hyper")]
-use hyper;
-
 #[cfg(feature = "actix-web")]
 use actix_web_crate as actix_web;
-
-#[cfg(feature = "salvo")]
-use salvo;
 
 #[cfg(feature = "axum")]
 use axum_core;
@@ -662,7 +656,7 @@ impl HttpApiProblem {
 
     /// Serialize to a JSON `String`
     pub fn json_string(&self) -> String {
-        serde_json::to_string(self).unwrap()
+        serde_json::to_string_pretty(self).unwrap()
     }
 
     /// Creates a [hyper] response.
@@ -672,14 +666,14 @@ impl HttpApiProblem {
     ///
     /// Requires the `hyper` feature
     #[cfg(feature = "hyper")]
-    pub fn to_hyper_response(&self) -> hyper::Response<hyper::Body> {
+    pub fn to_hyper_response(&self) -> hyper::Response<String> {
         use hyper::header::{HeaderValue, CONTENT_LENGTH, CONTENT_TYPE};
         use hyper::*;
 
-        let json = self.json_bytes();
+        let json = self.json_string();
         let length = json.len() as u64;
 
-        let (mut parts, body) = Response::new(json.into()).into_parts();
+        let (mut parts, body) = Response::new(json).into_parts();
 
         parts.headers.insert(
             CONTENT_TYPE,
@@ -790,10 +784,10 @@ impl HttpApiProblem {
         use salvo::hyper::header::{HeaderValue, CONTENT_LENGTH, CONTENT_TYPE};
         use salvo::hyper::*;
 
-        let json = self.json_bytes();
+        let json = self.json_string();
         let length = json.len() as u64;
 
-        let (mut parts, body) = Response::new(json.into()).into_parts();
+        let (mut parts, body) = Response::new(json).into_parts();
 
         parts.headers.insert(
             CONTENT_TYPE,
@@ -919,14 +913,14 @@ impl From<std::convert::Infallible> for HttpApiProblem {
 /// If status is `None` `500 - Internal Server Error` is the
 /// default.
 #[cfg(feature = "hyper")]
-pub fn into_hyper_response<T: Into<HttpApiProblem>>(what: T) -> hyper::Response<hyper::Body> {
+pub fn into_hyper_response<T: Into<HttpApiProblem>>(what: T) -> hyper::Response<String> {
     let problem: HttpApiProblem = what.into();
     problem.to_hyper_response()
 }
 
 #[cfg(feature = "hyper")]
-impl From<HttpApiProblem> for hyper::Response<hyper::Body> {
-    fn from(problem: HttpApiProblem) -> hyper::Response<hyper::Body> {
+impl From<HttpApiProblem> for hyper::Response<String> {
+    fn from(problem: HttpApiProblem) -> hyper::Response<String> {
         problem.to_hyper_response()
     }
 }
