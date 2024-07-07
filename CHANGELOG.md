@@ -10,8 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - update `hyper` to 1.0 (use String as body)
 - update `salvo` to 0.68.0
-- use rust 2021
-- update MSRV to 1.79
+- use `rust 2021`
+- update MSRV to `1.79`
 
 ### FIXED
 
