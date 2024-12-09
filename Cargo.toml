@@ -26,7 +26,7 @@ tide = { version = "0.16", optional = true, default-features = false }
 axum-core = { version = "^0.4.1", optional = true }
 http-api-problem-derive = { version = "0.1.0", path = "http-api-problem-derive", optional = true }
 schemars = { version = "0.8.10", optional = true }
-rocket_okapi = { version = "0.8.0-rc.2", optional = true }
+rocket_okapi = { version = ">= 0.8.0-rc.2, < 0.10", optional = true }
 
 [features]
 default = []
