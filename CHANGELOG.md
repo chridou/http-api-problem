@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - update `hyper` to 1.5
 - update `salvo` to 0.75.0
 - update `http` to 1.2
+- update MSRV to `1.80` due to the requirement from `salvo`
 
 ## [0.59.0] - 2024-07-07
 
